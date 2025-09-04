@@ -1,0 +1,58 @@
+name: "CodeQL Security Analysis"
+
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Mondays at 2 AM UTC
+
+jobs:
+  analyze:
+    name: Analyze Code
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    # Required permissions for CodeQL to upload results
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      pull-requests: read  # Only needed for pull request analysis
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript' ]  # TypeScript is analyzed as JavaScript
+        # CodeQL supports: 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # If you want to specify queries, uncomment below:
+        # queries: security-extended,security-and-quality
+
+    # For JavaScript/TypeScript, we need to build the project
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build project
+      run: npm run build
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
+        # Upload results even if there are no findings
+        upload: true
