@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for JSONOpt
+about: Suggest an idea for json-ultra-compress
 title: '[FEATURE] '
 labels: enhancement
 assignees: ''
@@ -55,4 +55,4 @@ Have you considered alternative solutions? How would this compare?
 
 ---
 
-**Thank you for helping make JSONOpt better! 🙏**
+**Thank you for helping make json-ultra-compress better! 🙏**

@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Columnar NDJSON encoding** for structured logs and event streams
 - **CRC32 integrity validation** for corruption detection
 - **Empty line preservation** with perfect roundtrip fidelity
-- **CLI tool** (`jsonopt`) for command-line compression workflows
+- **CLI tool** (`json-ultra-compress`) for command-line compression workflows
 - **Pure TypeScript implementation** - zero native dependencies
 - **Comprehensive test suite** (32/32 tests passing)
 
@@ -43,8 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Current hybrid approach provides better real-world performance
 
 ### 💡 **Migration from 0.x**
-- Package renamed from `json-optimizer` to `jsonopt`
-- CLI command changed from `json-optimizer` to `jsonopt`
+- Package renamed from `json-optimizer` to `json-ultra-compress`
+- CLI command changed from `json-optimizer` to `json-ultra-compress`
 - Removed rANS codec - use `hybrid` instead
 - All other APIs remain compatible
 

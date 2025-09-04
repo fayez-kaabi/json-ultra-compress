@@ -10,10 +10,10 @@ We actively support the following versions with security updates:
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in JSONOpt, please report it responsibly:
+If you discover a security vulnerability in json-ultra-compress, please report it responsibly:
 
 ### **Preferred Method: Private Security Advisory**
-1. Go to https://github.com/yourusername/jsonopt/security/advisories
+1. Go to https://github.com/fayez-kaabi/json-ultra-compress/security/advisories
 2. Click "Report a vulnerability"
 3. Provide detailed information about the issue
 
@@ -36,7 +36,7 @@ Send details to: fayez.kaabi@hotmail.com
 
 ### **Security Considerations**
 
-JSONOpt handles potentially untrusted data compression/decompression. Key security features:
+json-ultra-compress handles potentially untrusted data compression/decompression. Key security features:
 
 #### **Built-in Protections**
 - ✅ **CRC32 integrity validation** - Detects data corruption
@@ -68,4 +68,4 @@ We follow responsible disclosure practices:
 - Security advisories published on GitHub
 - NPM security notifications enabled
 
-Thank you for helping keep JSONOpt secure! 🔒
+Thank you for helping keep json-ultra-compress secure! 🔒

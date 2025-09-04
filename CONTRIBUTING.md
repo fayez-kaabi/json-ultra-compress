@@ -1,13 +1,13 @@
-# Contributing to JSONOpt
+# Contributing to json-ultra-compress
 
-Thank you for your interest in contributing to JSONOpt! We welcome contributions from the community.
+Thank you for your interest in contributing to json-ultra-compress! We welcome contributions from the community.
 
 ## 🚀 **Quick Start**
 
 ```bash
 # Fork the repository on GitHub
-git clone https://github.com/yourusername/jsonopt.git
-cd jsonopt
+git clone https://github.com/fayez-kaabi/json-ultra-compress.git
+cd json-ultra-compress
 
 # Install dependencies
 npm install
