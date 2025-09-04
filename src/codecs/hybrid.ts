@@ -4,12 +4,15 @@ import { gzipCodec } from './gzip.js';
 
 // Try to import zstd, fallback gracefully
 let zstdCodec: Codec | null = null;
-try {
-  const zstdModule = await import('./zstd-wasm.js');
-  zstdCodec = zstdModule.zstdCodec;
-} catch {
-  // zstd not available
+async function loadZstd() {
+  try {
+    const zstdModule = await import('./zstd-wasm.js');
+    zstdCodec = zstdModule.zstdCodec;
+  } catch {
+    // zstd not available
+  }
 }
+loadZstd();
 
 interface WindowChoice {
   codec: string;

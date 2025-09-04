@@ -1,6 +1,6 @@
 {
   "name": "json-ultra-compress",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "JSON-native compression with selective decode. Beats Brotli/Zstd on structured logs & APIs.",
   "license": "MIT",
   "type": "module",

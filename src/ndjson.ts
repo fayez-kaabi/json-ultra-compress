@@ -95,7 +95,7 @@ function encodeNDJSONColumnarLegacy(input: string, dict?: KeyDict | null, batchS
   }
 
   // Process each shape group in batches
-  for (const [shapeId, shapeObjects] of shapeGroups) {
+  for (const [shapeId, shapeObjects] of Array.from(shapeGroups.entries())) {
     for (let offset = 0; offset < shapeObjects.length; offset += batchSize) {
       const batch = shapeObjects.slice(offset, Math.min(offset + batchSize, shapeObjects.length));
       const frame = encodeColumnarFrame(batch, shapeId, dict);

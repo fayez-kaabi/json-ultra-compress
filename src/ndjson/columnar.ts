@@ -5,13 +5,13 @@ import type { KeyDict } from '../types.js';
 
 // FNV-1a 64-bit hash for shape fingerprinting
 function fnv1a64(data: string): bigint {
-  const FNV_OFFSET_BASIS = 14695981039346656037n;
-  const FNV_PRIME = 1099511628211n;
+  const FNV_OFFSET_BASIS = BigInt('14695981039346656037');
+  const FNV_PRIME = BigInt('1099511628211');
 
   let hash = FNV_OFFSET_BASIS;
   for (let i = 0; i < data.length; i++) {
     hash ^= BigInt(data.charCodeAt(i));
-    hash = (hash * FNV_PRIME) & 0xFFFFFFFFFFFFFFFFn;
+    hash = (hash * FNV_PRIME) & BigInt('0xFFFFFFFFFFFFFFFF');
   }
   return hash;
 }
@@ -429,7 +429,7 @@ export function encodeNDJSONColumnar(input: string, dict?: KeyDict | null, batch
   }
 
   // Process each shape group in batches
-  for (const { objects: shapeObjects, shapeId } of shapeGroups.values()) {
+  for (const { objects: shapeObjects, shapeId } of Array.from(shapeGroups.values())) {
     for (let offset = 0; offset < shapeObjects.length; offset += batchSize) {
       const batch = shapeObjects.slice(offset, Math.min(offset + batchSize, shapeObjects.length));
       const frame = encodeColumnarBatch(batch, shapeId, dict);
