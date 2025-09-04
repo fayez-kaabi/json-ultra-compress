@@ -7,7 +7,7 @@
 import { compress, decompress, compressNDJSON, decompressNDJSON } from 'json-ultra-compress';
 
 async function basicExamples() {
-  console.log('🚀 JSONOpt Basic Usage Examples\n');
+  console.log('🚀 json-ultra-compress Basic Usage Examples\n');
 
   // 1. Single JSON compression
   console.log('📄 Single JSON Compression');

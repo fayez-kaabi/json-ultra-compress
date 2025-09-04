@@ -1,8 +1,8 @@
 #!/bin/bash
-# JSONOpt CLI Examples
+# json-ultra-compress CLI Examples
 # Demonstrates command-line usage for various scenarios
 
-echo "🚀 JSONOpt CLI Examples"
+echo "🚀 json-ultra-compress CLI Examples"
 echo "======================="
 echo
 
@@ -103,7 +103,7 @@ echo
 echo "🔄 Example 5: Pipeline Usage"
 echo "============================"
 
-echo "JSONOpt works great in pipelines:"
+echo "json-ultra-compress works great in pipelines:"
 echo
 
 echo "# Compress logs from a service"
