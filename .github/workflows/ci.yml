@@ -23,10 +23,14 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
 
     - name: Install dependencies
       run: npm ci
+
+    - name: Install Rollup native binary
+      run: |
+        # Explicitly install the missing rollup native dependency
+        npm install @rollup/rollup-linux-x64-gnu --save-dev --no-save || true
 
     - name: Build
       run: npm run build
@@ -51,6 +55,33 @@ jobs:
         console.log('✅ CLI test passed - JSON content preserved');
         "
         rm test.json test.juc restored.json
+
+    - name: Test Selective Decode CLI
+      run: |
+        # Create test NDJSON with multiple fields
+        echo '{"user_id": 100, "timestamp": "2023-01-01T10:00:00Z", "event": "login", "metadata": {"ip": "192.168.1.1"}}' > test.ndjson
+        echo '{"user_id": 101, "timestamp": "2023-01-01T10:01:00Z", "event": "logout", "metadata": {"ip": "192.168.1.2"}}' >> test.ndjson
+        echo '{"user_id": 102, "timestamp": "2023-01-01T10:02:00Z", "event": "purchase", "amount": 99.99}' >> test.ndjson
+
+        # Compress with columnar encoding
+        node ./dist/cli.js compress-ndjson --codec=hybrid --columnar test.ndjson -o test.juc
+
+        # Test selective decode
+        node ./dist/cli.js decompress-ndjson --fields=user_id,timestamp test.juc -o projected.ndjson
+
+        # Verify selective decode worked
+        node -e "
+        const fs = require('fs');
+        const lines = fs.readFileSync('projected.ndjson', 'utf8').trim().split('\n');
+        const firstLine = JSON.parse(lines[0]);
+        if (!('user_id' in firstLine) || !('timestamp' in firstLine) || 'event' in firstLine || 'metadata' in firstLine) {
+          console.error('❌ Selective decode failed - wrong fields');
+          process.exit(1);
+        }
+        console.log('✅ Selective decode CLI test passed');
+        "
+
+        rm test.ndjson test.juc projected.ndjson
 
     - name: Package Size Check
       run: |

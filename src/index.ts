@@ -5,9 +5,10 @@ import { codecs as codecRegistry } from './codecs/index.js';
 import { utf8Decode, utf8Encode, chooseCodecSample } from './utils.js';
 import { brotliCodec } from './codecs/brotli.js';
 import { gzipCodec } from './codecs/gzip.js';
+import { openColumnar, isColumnarPayload } from './selective-decode.js';
 import type { Codec, CodecName, KeyDict, CodecNameOrAuto } from './types';
 
-// Advanced exports  
+// Advanced exports
 export const codecs = codecRegistry;
 
 // Public API types
@@ -23,11 +24,11 @@ export interface NDJSONOptions extends CompressOptions {
 }
 
 export interface DecodeOptions {
-  fields?: string[]; // For future selective decode
+  fields?: string[]; // For selective decode - only include these fields
 }
 
 // Advanced types
-export type { Codec, CodecName, KeyDict };
+export type { Codec, CodecName, KeyDict, Bitset, ColumnReader, Window, ColumnarHandle } from './types.js';
 function chooseCodec(input: Uint8Array): CodecName {
   return chooseCodecSample(input, (x) => brotliCodec.encode(x) as Uint8Array, (x) => gzipCodec.encode(x) as Uint8Array);
 }
@@ -138,21 +139,69 @@ export async function compressNDJSON(inputNdjson: string, opts: NDJSONOptions = 
   return encodeContainer(header, compressed);
 }
 
-export async function decompressNDJSON(containerBytes: Uint8Array): Promise<string> {
+export async function decompressNDJSON(containerBytes: Uint8Array, opts?: DecodeOptions): Promise<string> {
   const { header, body } = decodeContainer(containerBytes);
   const codec = codecs[header.codec];
   const bytes = await codec.decode(body);
 
-  // Check if this is columnar data by looking for frame magic bytes (0xC1 or 'BM')
-  const COLUMNAR_MAGIC = 0xC1;
-  const BITMAP_MAGIC_B = 0x42; // 'B'
-  const BITMAP_MAGIC_M = 0x4D; // 'M'
+  // Check if this is columnar data
+  if (isColumnarPayload(bytes)) {
+    // === NEW: selective projection ===
+    const h = openColumnar(bytes);
+    const want = (opts?.fields?.length ? opts.fields : undefined);
 
-  if (bytes.length > 0 && (bytes[0] === COLUMNAR_MAGIC ||
-      (bytes.length >= 2 && bytes[0] === BITMAP_MAGIC_B && bytes[1] === BITMAP_MAGIC_M))) {
-    // This is columnar data - parse as binary frames
-    const frames = parseColumnarFrames(bytes);
-    return decodeNDJSONColumnar(frames, header.keyDictInline ? header.keyDict ?? null : null);
+    // Decode all valid lines first (like the existing implementation)
+    const validLines: string[] = [];
+    for (const w of h.windows) {
+      if (!want) {
+        // Full decode
+        for (let i = 0; i < w.numRows; i++) {
+          const obj: any = {};
+          for (const k of w.keyOrder) {
+            const r = w.getReader(k);
+            if (r && r.present(i)) obj[k] = r.getValue(i);
+          }
+          validLines.push(JSON.stringify(obj));
+        }
+      } else {
+        // Selective decode
+        const readers: Record<string, import('./types.js').ColumnReader> = {};
+        for (const k of want) {
+          const r = w.getReader(k);
+          if (r) readers[k] = r;
+        }
+
+        for (let i = 0; i < w.numRows; i++) {
+          const obj: any = {};
+          for (const k of want) {
+            const r = readers[k];
+            if (r && r.present(i)) {
+              obj[k] = r.getValue(i);
+            }
+          }
+          validLines.push(JSON.stringify(obj));
+        }
+      }
+    }
+
+    // Reconstruct with empty lines using global line presence
+    const globalLinePresence = h.windows[0]?.linePresence;
+    if (globalLinePresence) {
+      const result: string[] = [];
+      let validIndex = 0;
+
+      for (let i = 0; i < globalLinePresence.length; i++) {
+        if (globalLinePresence.get(i)) {
+          result.push(validLines[validIndex++] || '');
+        } else {
+          result.push('');
+        }
+      }
+
+      return result.join("\n");
+    } else {
+      return validLines.join("\n");
+    }
   }
 
   // Regular NDJSON - run per-line inverse transforms
@@ -173,91 +222,5 @@ export async function decompressNDJSON(containerBytes: Uint8Array): Promise<stri
   return out.join('\n');
 }
 
-function parseColumnarFrames(bytes: Uint8Array): Uint8Array[] {
-  const frames: Uint8Array[] = [];
-  let offset = 0;
-
-  while (offset < bytes.length) {
-    // Skip any newline separators
-    while (offset < bytes.length && (bytes[offset] === 0x0A || bytes[offset] === 0x0D)) {
-      offset++;
-    }
-
-    if (offset >= bytes.length) break;
-
-    const magic = bytes[offset];
-
-    // Handle line presence bitmap frame ('BM')
-    if (magic === 0x42 && offset + 1 < bytes.length && bytes[offset + 1] === 0x4D) {
-      if (offset + 5 > bytes.length) {
-        throw new Error('Incomplete bitmap frame header');
-      }
-
-      const dv = new DataView(bytes.buffer, bytes.byteOffset + offset);
-      const lineCount = dv.getUint32(2, true); // Skip 'BM' magic (2 bytes)
-      const bitmapBytes = Math.ceil(lineCount / 8);
-      const frameSize = 6 + bitmapBytes; // 'BM' + lineCount + bitmap
-
-      if (offset + frameSize > bytes.length) {
-        throw new Error('Incomplete bitmap frame data');
-      }
-
-      frames.push(bytes.subarray(offset, offset + frameSize));
-      offset += frameSize;
-      continue;
-    }
-
-    // Handle columnar frame (0xC1)
-    if (magic !== 0xC1) {
-      throw new Error('Invalid frame magic at offset ' + offset + ': expected 0xC1 or BM, got 0x' + magic.toString(16));
-    }
-
-    // Read frame header to determine frame size
-    if (offset + 15 > bytes.length) {
-      throw new Error('Incomplete columnar frame header');
-    }
-
-    const dv = new DataView(bytes.buffer, bytes.byteOffset + offset);
-    const rows = dv.getUint32(1, true); // skip magic byte
-    const shapeId = dv.getBigUint64(5, true);
-    const keyCount = dv.getUint16(13, true);
-
-    // Calculate frame size by parsing the header
-    let frameSize = 15; // magic + rows + shapeId + keyCount
-    let frameOffset = offset + 15;
-
-    // Skip keys
-    for (let i = 0; i < keyCount; i++) {
-      if (frameOffset + 4 > bytes.length) throw new Error('Incomplete key section');
-      const keyLen = new DataView(bytes.buffer, bytes.byteOffset + frameOffset).getUint32(0, true);
-      frameSize += 4 + keyLen;
-      frameOffset += 4 + keyLen;
-    }
-
-    // Skip presence bitmap
-    const presenceBitsCount = keyCount * rows;
-    const presenceBytes = Math.ceil(presenceBitsCount / 8);
-    frameSize += presenceBytes;
-    frameOffset += presenceBytes;
-
-    // Skip columns
-    for (let i = 0; i < keyCount; i++) {
-      if (frameOffset + 4 > bytes.length) throw new Error('Incomplete column section');
-      const colLen = new DataView(bytes.buffer, bytes.byteOffset + frameOffset).getUint32(0, true);
-      frameSize += 4 + colLen;
-      frameOffset += 4 + colLen;
-    }
-
-    // Extract the complete frame
-    if (offset + frameSize > bytes.length) {
-      throw new Error('Incomplete columnar frame data');
-    }
-
-    frames.push(bytes.subarray(offset, offset + frameSize));
-    offset += frameSize;
-  }
-
-  return frames;
-}
 
 

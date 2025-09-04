@@ -1,7 +1,7 @@
 {
   "name": "json-ultra-compress",
-  "version": "1.0.1",
-  "description": "JSON-native compression with selective decode. Beats Brotli/Zstd on structured logs & APIs.",
+  "version": "1.1.0",
+  "description": "JSON-native compression with selective field decode. Beats Brotli/Zstd on structured logs & APIs.",
   "license": "MIT",
   "type": "module",
   "homepage": "https://github.com/fayez-kaabi/json-ultra-compress#readme",

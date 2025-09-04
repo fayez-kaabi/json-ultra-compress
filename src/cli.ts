@@ -15,8 +15,8 @@ const logo = `
 const program = new Command();
 program
   .name('json-ultra-compress')
-  .description('JSON-native compression with selective decode. Beats Brotli/Zstd on structured logs & APIs.')
-  .version('1.0.1');
+  .description('JSON-native compression with selective field decode. Beats Brotli/Zstd on structured logs & APIs.')
+  .version('1.1.0');
 
 program.hook('preAction', () => {
   console.error(chalk.cyan(logo));
@@ -64,11 +64,13 @@ program
   .command('decompress-ndjson')
   .argument('<input>', 'input .juc')
   .option('-o, --out <file>', 'output .ndjson', 'out.ndjson')
+  .option('--fields <fields>', 'selective decode: comma-separated field names (e.g., user_id,ts)')
   .action(async (input, opts) => {
     const bytes = new Uint8Array(await readFile(input));
-    const nd = await decompressNDJSON(bytes);
+    const fields = opts.fields ? String(opts.fields).split(",").map((s: string) => s.trim()).filter(Boolean) : undefined;
+    const nd = await decompressNDJSON(bytes, { fields });
     await writeFile(opts.out, nd, 'utf8');
-    console.log(chalk.green(`wrote ${opts.out} (${nd.length} bytes)`));
+    console.log(chalk.green(`wrote ${opts.out} (${nd.length} bytes)${fields ? ` - projected fields: ${fields.join(', ')}` : ''}`));
   });
 
 program.parseAsync();
