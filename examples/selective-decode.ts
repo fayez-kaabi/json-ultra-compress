@@ -4,7 +4,7 @@
  * Demonstrates the power of reading only specific fields from compressed data
  */
 
-import { compressNDJSON, decompressNDJSON } from 'jsonopt';
+import { compressNDJSON, decompressNDJSON } from '../dist/index.js';
 
 async function selectiveDecodeDemo() {
   console.log('⚡ Selective Decode Demo\n');
@@ -108,7 +108,7 @@ async function selectiveDecodeDemo() {
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url.endsWith(process.argv[1])) {
   selectiveDecodeDemo().catch(console.error);
 }
 

@@ -4,7 +4,7 @@
  * Shows the core API for JSON compression and selective decode
  */
 
-import { compress, decompress, compressNDJSON, decompressNDJSON } from 'jsonopt';
+import { compress, decompress, compressNDJSON, decompressNDJSON } from '../dist/index.js';
 
 async function basicExamples() {
   console.log('🚀 JSONOpt Basic Usage Examples\n');
@@ -84,8 +84,6 @@ async function basicExamples() {
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  basicExamples().catch(console.error);
-}
+basicExamples().catch(console.error);
 
 export { basicExamples };
