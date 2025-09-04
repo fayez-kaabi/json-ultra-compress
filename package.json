@@ -4,6 +4,14 @@
   "description": "JSON-native compression with selective decode. Beats Brotli/Zstd on structured logs & APIs.",
   "license": "MIT",
   "type": "module",
+  "homepage": "https://github.com/fayez-kaabi/jsonopt#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fayez-kaabi/jsonopt.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fayez-kaabi/jsonopt/issues"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -37,7 +45,9 @@
     "bench:verdict": "tsx scripts/verdict.ts",
     "dump:header": "tsx scripts/dump-header.ts",
     "gen": "tsx scripts/gen-synth.ts",
-    "release": "semantic-release"
+    "release": "semantic-release",
+    "prepublishOnly": "npm run build && npm test",
+    "postpublish": "git push && git push --tags"
   },
   "keywords": [
     "json",
