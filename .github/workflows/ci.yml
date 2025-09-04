@@ -27,10 +27,10 @@ jobs:
 
     - name: Install dependencies
       run: npm ci
-      
+
     - name: Build
       run: npm run build
-      
+
     - name: Test
       run: npm test
 
@@ -39,7 +39,17 @@ jobs:
         echo '{"test": "data"}' > test.json
         node ./dist/cli.js compress --codec=hybrid test.json -o test.juc
         node ./dist/cli.js decompress test.juc -o restored.json
-        diff test.json restored.json
+        # Verify JSON content is equivalent (not byte-identical due to formatting)
+        node -e "
+        const fs = require('fs');
+        const orig = JSON.parse(fs.readFileSync('test.json', 'utf8'));
+        const restored = JSON.parse(fs.readFileSync('restored.json', 'utf8'));
+        if (JSON.stringify(orig) !== JSON.stringify(restored)) {
+          console.error('❌ JSON content mismatch');
+          process.exit(1);
+        }
+        console.log('✅ CLI test passed - JSON content preserved');
+        "
         rm test.json test.juc restored.json
 
     - name: Package Size Check
