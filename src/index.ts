@@ -5,11 +5,9 @@ import { codecs as codecRegistry } from './codecs/index.js';
 import { utf8Decode, utf8Encode, chooseCodecSample } from './utils.js';
 import { brotliCodec } from './codecs/brotli.js';
 import { gzipCodec } from './codecs/gzip.js';
-import { trainDictionary } from './dict.js';
 import type { Codec, CodecName, KeyDict, CodecNameOrAuto } from './types';
 
-// Advanced exports
-export { trainDictionary };
+// Advanced exports  
 export const codecs = codecRegistry;
 
 // Public API types

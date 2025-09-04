@@ -38,17 +38,8 @@
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint . --ext .ts,.tsx,.mts,.cts",
-    "format": "prettier --write \"**/*.{ts,js,json,md,yml,yaml}\"",
-    "prepare": "husky install",
     "bench": "tsx scripts/bench.ts",
-    "bench:matrix": "tsx scripts/bench-matrix.ts",
-    "bench:verdict": "tsx scripts/verdict.ts",
-    "dump:header": "tsx scripts/dump-header.ts",
-    "gen": "tsx scripts/gen-synth.ts",
-    "release": "semantic-release",
-    "prepublishOnly": "npm run build && npm test",
-    "postpublish": "git push && git push --tags"
+    "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
     "json",
@@ -73,62 +64,9 @@
     "@zstd/wasm": "^0.9.0"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.3.0",
-    "@commitlint/config-conventional": "^19.2.2",
     "@types/node": "^20.12.12",
-    "@types/glob": "^8.1.0",
-    "eslint": "^9.8.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-n": "^17.8.1",
-    "eslint-plugin-promise": "^6.4.0",
-    "husky": "^9.0.11",
-    "lint-staged": "^15.2.7",
-    "prettier": "^3.3.3",
-    "semantic-release": "^23.1.1",
     "tsx": "^4.15.7",
     "typescript": "^5.5.4",
-    "vitest": "^2.0.5"
-  },
-  "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md,yml,yaml}": [
-      "prettier --write"
-    ]
-  },
-  "release": {
-    "branches": [
-      "main"
-    ],
-    "plugins": [
-      [
-        "@semantic-release/commit-analyzer"
-      ],
-      [
-        "@semantic-release/release-notes-generator"
-      ],
-      [
-        "@semantic-release/changelog"
-      ],
-      [
-        "@semantic-release/npm"
-      ],
-      [
-        "@semantic-release/github"
-      ],
-      [
-        "@semantic-release/git",
-        {
-          "assets": [
-            "CHANGELOG.md",
-            "package.json"
-          ],
-          "message": "chore(release): ${nextRelease.version}\n\n${nextRelease.notes}"
-        }
-      ]
-    ]
+    "vitest": "^3.2.4"
   }
 }
