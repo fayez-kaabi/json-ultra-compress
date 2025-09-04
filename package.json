@@ -1,20 +1,21 @@
 {
-  "name": "jsonopt",
+  "name": "json-ultra-compress",
   "version": "1.0.0",
   "description": "JSON-native compression with selective decode. Beats Brotli/Zstd on structured logs & APIs.",
   "license": "MIT",
   "type": "module",
-  "homepage": "https://github.com/fayez-kaabi/jsonopt#readme",
+  "homepage": "https://github.com/fayez-kaabi/json-ultra-compress#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/fayez-kaabi/jsonopt.git"
+    "url": "https://github.com/fayez-kaabi/json-ultra-compress.git"
   },
   "bugs": {
-    "url": "https://github.com/fayez-kaabi/jsonopt/issues"
+    "url": "https://github.com/fayez-kaabi/json-ultra-compress/issues"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
+    "json-ultra-compress": "dist/cli.js",
     "jsonopt": "dist/cli.js"
   },
   "engines": {

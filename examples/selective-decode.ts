@@ -4,7 +4,7 @@
  * Demonstrates the power of reading only specific fields from compressed data
  */
 
-import { compressNDJSON, decompressNDJSON } from '../dist/index.js';
+import { compressNDJSON, decompressNDJSON } from 'json-ultra-compress';
 
 async function selectiveDecodeDemo() {
   console.log('⚡ Selective Decode Demo\n');

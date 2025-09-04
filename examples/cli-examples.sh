@@ -42,11 +42,11 @@ echo "Original file size:"
 wc -c sample-logs.ndjson
 
 echo "Compressing with hybrid codec (row-wise):"
-jsonopt compress --codec=hybrid < sample-logs.ndjson > logs-row.jopt
+json-ultra-compress compress --codec=hybrid < sample-logs.ndjson > logs-row.jopt
 wc -c logs-row.jopt
 
 echo "Compressing with hybrid codec (columnar - the magic!):"
-jsonopt compress --codec=hybrid --columnar < sample-logs.ndjson > logs-columnar.jopt
+json-ultra-compress compress --codec=hybrid --columnar < sample-logs.ndjson > logs-columnar.jopt
 wc -c logs-columnar.jopt
 
 echo "Compression comparison:"
@@ -61,9 +61,9 @@ echo "=============================="
 
 echo "Testing different codecs on the same data:"
 
-jsonopt compress --codec=brotli < sample-logs.ndjson > logs-brotli.jopt
-jsonopt compress --codec=gzip < sample-logs.ndjson > logs-gzip.jopt
-jsonopt compress --codec=hybrid < sample-logs.ndjson > logs-hybrid.jopt
+json-ultra-compress compress --codec=brotli < sample-logs.ndjson > logs-brotli.jopt
+json-ultra-compress compress --codec=gzip < sample-logs.ndjson > logs-gzip.jopt
+json-ultra-compress compress --codec=hybrid < sample-logs.ndjson > logs-hybrid.jopt
 
 echo "Results:"
 echo "Brotli:  $(wc -c < logs-brotli.jopt) bytes"
@@ -79,11 +79,11 @@ echo "Original JSON file size:"
 wc -c sample-api.json
 
 echo "Compressing with hybrid codec:"
-jsonopt compress --codec=hybrid < sample-api.json > api-compressed.jopt
+json-ultra-compress compress --codec=hybrid < sample-api.json > api-compressed.jopt
 wc -c api-compressed.jopt
 
 echo "Decompressing to verify:"
-jsonopt decompress < api-compressed.jopt > api-restored.json
+json-ultra-compress decompress < api-compressed.jopt > api-restored.json
 echo "Integrity check: $(diff sample-api.json api-restored.json && echo '✅ Perfect' || echo '❌ Failed')"
 echo
 
@@ -92,10 +92,10 @@ echo "⚡ Example 4: Selective Decode (Simulated)"
 echo "========================================="
 
 echo "Full decompression:"
-time jsonopt decompress < logs-columnar.jopt > /dev/null
+time json-ultra-compress decompress < logs-columnar.jopt > /dev/null
 
 echo "In the future, you'll be able to do:"
-echo "jsonopt decompress --fields=user_id,event,timestamp < logs-columnar.jopt"
+echo "json-ultra-compress decompress --fields=user_id,event,timestamp < logs-columnar.jopt"
 echo "This will read only the specified fields, making it much faster!"
 echo
 
@@ -107,15 +107,15 @@ echo "JSONOpt works great in pipelines:"
 echo
 
 echo "# Compress logs from a service"
-echo "tail -f /var/log/app.ndjson | jsonopt compress --codec=hybrid --columnar > compressed-stream.jopt"
+echo "tail -f /var/log/app.ndjson | json-ultra-compress compress --codec=hybrid --columnar > compressed-stream.jopt"
 echo
 
 echo "# Process specific fields from compressed logs"
-echo "jsonopt decompress --fields=timestamp,user_id,error < compressed-stream.jopt | jq '.error | select(. != null)'"
+echo "json-ultra-compress decompress --fields=timestamp,user_id,error < compressed-stream.jopt | jq '.error | select(. != null)'"
 echo
 
 echo "# Compress API responses for caching"
-echo "curl https://api.example.com/users | jsonopt compress --codec=hybrid > users-cache.jopt"
+echo "curl https://api.example.com/users | json-ultra-compress compress --codec=hybrid > users-cache.jopt"
 echo
 
 # Cleanup
@@ -130,4 +130,4 @@ echo "  • Use --codec=hybrid for automatic best-codec selection"
 echo "  • Pipeline-friendly: reads stdin, writes stdout"
 echo "  • Perfect for log processing, API caching, and data archival"
 echo
-echo "🚀 Ready to compress the world? Try jsonopt on your data!"
+echo "🚀 Ready to compress the world? Try json-ultra-compress on your data!"

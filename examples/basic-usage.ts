@@ -4,7 +4,7 @@
  * Shows the core API for JSON compression and selective decode
  */
 
-import { compress, decompress, compressNDJSON, decompressNDJSON } from '../dist/index.js';
+import { compress, decompress, compressNDJSON, decompressNDJSON } from 'json-ultra-compress';
 
 async function basicExamples() {
   console.log('🚀 JSONOpt Basic Usage Examples\n');

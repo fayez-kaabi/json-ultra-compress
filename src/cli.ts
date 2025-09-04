@@ -17,7 +17,7 @@ const logo = `
 
 const program = new Command();
 program
-  .name('jsonopt')
+  .name('json-ultra-compress')
   .description('JSON-native compression with selective decode. Beats Brotli/Zstd on structured logs & APIs.')
   .version('1.0.0');
 

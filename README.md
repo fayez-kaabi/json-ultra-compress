@@ -1,4 +1,4 @@
-# jsonopt
+# json-ultra-compress
 
 **JSON-native compression with selective decode. Beats Brotli/Zstd on structured logs & APIs.**
 
@@ -10,11 +10,11 @@
 ## Quick Start
 
 ```bash
-npm install jsonopt
+npm install json-ultra-compress
 ```
 
 ```typescript
-import { compress, decompress, compressNDJSON, decompressNDJSON } from 'jsonopt';
+import { compress, decompress, compressNDJSON, decompressNDJSON } from 'json-ultra-compress';
 
 // Single JSON compression
 const json = JSON.stringify({ users: [...], meta: {...} });
@@ -37,13 +37,13 @@ const back = await decompressNDJSON(columnar);              // full restore
 
 ```bash
 # Compress structured logs (the magic happens here!)
-jsonopt compress --codec=hybrid --columnar < access.ndjson > access.jopt
+json-ultra-compress compress --codec=hybrid --columnar < access.ndjson > access.jopt
 
 # Decompress
-jsonopt decompress < access.jopt > restored.ndjson
+json-ultra-compress decompress < access.jopt > restored.ndjson
 
 # Future: selective decode
-jsonopt decompress --fields=user_id,timestamp < access.jopt > partial.ndjson
+json-ultra-compress decompress --fields=user_id,timestamp < access.jopt > partial.ndjson
 ```
 
 ## Why JSONOpt?
@@ -130,7 +130,7 @@ interface DecodeOptions {
 ### Basic Usage
 
 ```typescript
-import { compress, decompress, compressNDJSON, decompressNDJSON } from 'jsonopt';
+import { compress, decompress, compressNDJSON, decompressNDJSON } from 'json-ultra-compress';
 
 // Compress API response
 const apiData = JSON.stringify({
@@ -173,13 +173,13 @@ console.log(`Improvement: ${((regular.length - columnar.length) / regular.length
 
 ```bash
 # Compress production logs
-tail -f /var/log/app.ndjson | jsonopt compress --codec=hybrid --columnar > stream.jopt
+tail -f /var/log/app.ndjson | json-ultra-compress compress --codec=hybrid --columnar > stream.jopt
 
 # Analyze compressed logs
-jsonopt decompress < stream.jopt | jq '.error | select(. != null)'
+json-ultra-compress decompress < stream.jopt | jq '.error | select(. != null)'
 
 # Cache API responses
-curl https://api.example.com/users | jsonopt compress --codec=hybrid > cache.jopt
+curl https://api.example.com/users | json-ultra-compress compress --codec=hybrid > cache.jopt
 ```
 
 ## Benchmarks
@@ -188,11 +188,11 @@ Run your own benchmarks:
 
 ```bash
 # Install and test
-npm install jsonopt
-echo '{"test":1}' | jsonopt compress --codec=hybrid | jsonopt decompress
+npm install json-ultra-compress
+echo '{"test":1}' | json-ultra-compress compress --codec=hybrid | json-ultra-compress decompress
 
 # Benchmark on your data
-jsonopt compress --codec=hybrid --columnar < your-logs.ndjson > compressed.jopt
+json-ultra-compress compress --codec=hybrid --columnar < your-logs.ndjson > compressed.jopt
 ls -lh your-logs.ndjson compressed.jopt
 ```
 
@@ -242,11 +242,11 @@ try {
 ## Installation & Compatibility
 
 ```bash
-npm install jsonopt
+npm install json-ultra-compress
 # or
-yarn add jsonopt
+yarn add json-ultra-compress
 # or
-pnpm add jsonopt
+pnpm add json-ultra-compress
 ```
 
 **Requirements:**
@@ -262,8 +262,8 @@ pnpm add jsonopt
 We welcome contributions! The codebase is clean TypeScript with comprehensive tests.
 
 ```bash
-git clone https://github.com/yourusername/jsonopt
-cd jsonopt
+git clone https://github.com/yourusername/json-ultra-compress
+cd json-ultra-compress
 npm install
 npm test    # Should be 32/32 passing ✅
 npm run build
