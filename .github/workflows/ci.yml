@@ -27,11 +27,6 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Install Rollup native binary
-      run: |
-        # Explicitly install the missing rollup native dependency
-        npm install @rollup/rollup-linux-x64-gnu --save-dev --no-save || true
-
     - name: Build
       run: npm run build
 

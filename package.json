@@ -61,7 +61,8 @@
     "undici": "^6.19.8"
   },
   "optionalDependencies": {
-    "@zstd/wasm": "^0.9.0"
+    "@zstd/wasm": "^0.9.0",
+    "@rollup/rollup-linux-x64-gnu": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",

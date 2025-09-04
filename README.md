@@ -2,15 +2,15 @@
 
 **JSON-native compression with selective field decode.**
 
-- 🚀 **60–70% better compression** on structured NDJSON logs vs Brotli  
-- ⚡ **3–5× faster partial reads** with selective decode (`--fields=user,ts`)  
-- 🌐 **Zero native deps** – pure TypeScript, runs in Node, browsers, edge  
+- 🚀 **60–70% better compression** on structured NDJSON logs vs Brotli
+- ⚡ **3–5× faster partial reads** with selective decode (`--fields=user,ts`)
+- 🌐 **Zero native deps** – pure TypeScript, runs in Node, browsers, edge
 - 🔒 **CRC integrity validation** with perfect empty line preservation
 
 ## New Use Cases with Selective Decode
 
 * **Analytics pipelines** → project only `user_id, ts, campaign_id`
-* **Observability** → extract `error_code, ts` from huge archives instantly  
+* **Observability** → extract `error_code, ts` from huge archives instantly
 * **Streaming filters** → fast routing without full JSON hydration
 
 🔑 **Unique capability**: Selective field decode — read only the columns you need, skipping the rest. Brotli/Zstd can't.
@@ -20,7 +20,7 @@
 ```bash
 npm i json-ultra-compress
 # or
-yarn add json-ultra-compress  
+yarn add json-ultra-compress
 # or
 pnpm add json-ultra-compress
 ```
@@ -55,11 +55,11 @@ const partial = await decompressNDJSON(columnar, { fields: ['user','ts'] });
 
 ## Performance Benchmarks
 
-| Codec | Size | Ratio | Time | Selective Decode |
-|-------|------|-------|------|------------------|
-| **Columnar (hybrid)** | **5 KB** | **0.014** | **37 ms** | **✅ user_id, ts only** |
-| Brotli (q6) | 16 KB | 0.044 | 149 ms | ❌ N/A |
-| Row-wise (hybrid) | 16 KB | 0.044 | 177 ms | ❌ N/A |
+| Format + Codec | Size | Ratio | Time | Selective Decode |
+|----------------|------|-------|------|------------------|
+| **Columnar + Hybrid** | **5 KB** | **0.014** | **37 ms** | **✅ user_id, ts only** |
+| Raw + Brotli | 16 KB | 0.044 | 149 ms | ❌ N/A |
+| Raw + Hybrid | 16 KB | 0.044 | 177 ms | ❌ N/A |
 
 *Test data: 360KB structured NDJSON logs (1k records, 12 fields each)*
 
