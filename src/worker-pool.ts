@@ -33,8 +33,10 @@ export class WorkerPool<TReq extends WorkerMessage, TRes extends WorkerResponse>
   private busy: Set<Worker> = new Set();
   private all: Worker[] = [];
   private pendingTasks: Map<string, WorkerTask<TReq, TRes>> = new Map();
+  private readonly maxQueueSize: number;
 
   constructor(private workerPath: string, private size: number) {
+    this.maxQueueSize = size * 2; // Backpressure: cap queue to poolSize * 2
     for (let i = 0; i < size; i++) {
       this.spawn();
     }
@@ -52,7 +54,7 @@ export class WorkerPool<TReq extends WorkerMessage, TRes extends WorkerResponse>
       this.idle.push(worker);
 
       if (response.error) {
-        task.reject(new Error(`Worker error (window ${response.windowIndex}): ${response.error}`));
+        task.reject(new Error(`Worker error (window ${response.windowIndex}/${response.id}): ${response.error}`));
       } else {
         task.resolve(response);
       }
@@ -94,8 +96,11 @@ export class WorkerPool<TReq extends WorkerMessage, TRes extends WorkerResponse>
 
       if (this.idle.length > 0) {
         this.assignTask(task);
-      } else {
+      } else if (this.queue.length < this.maxQueueSize) {
         this.queue.push(task);
+      } else {
+        // Backpressure: queue is full, reject with helpful error
+        reject(new Error(`Worker pool queue full (${this.maxQueueSize}). Consider processing in smaller batches.`));
       }
     });
   }
@@ -150,17 +155,30 @@ export function getOptimalPoolSize(): number {
 }
 
 /**
- * Determine if workers should be used based on input size
+ * Determine if workers should be used based on input size and operation type
  */
 export function shouldUseWorkers(
   inputSize: number,
   windowCount: number,
-  workersOption: number | 'auto' | false
+  workersOption: number | 'auto' | false,
+  isColumnar: boolean = false,
+  isSelectiveDecode: boolean = false,
+  fieldCount?: number
 ): number {
   if (workersOption === false) return 0;
   if (typeof workersOption === 'number') return workersOption;
 
-  // Auto mode: use workers for large inputs
+  // Auto mode: use workers only for columnar operations and large inputs
+  if (!isColumnar) return 0; // Row-wise stays single-threaded
+
+  // For selective decode, use higher thresholds since projection is usually cheap
+  if (isSelectiveDecode) {
+    const isVeryLargeInput = inputSize >= 50 * 1024 * 1024; // 50MB for selective decode
+    const isManyRows = windowCount >= 100; // Higher threshold for selective decode
+    return (isVeryLargeInput || isManyRows) ? getOptimalPoolSize() : 0;
+  }
+
+  // For compression, use standard thresholds
   const isLargeInput = inputSize >= 32 * 1024 * 1024; // 32MB
   const isManyWindows = windowCount >= 64;
 

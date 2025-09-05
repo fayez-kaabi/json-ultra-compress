@@ -1,135 +1,91 @@
-# JSON Ultra Compress: Revolutionary Performance Report
+# JSON Ultra Compress Benchmark Report
 
-**JSON-native compression with selective field decode**
-Generated: 2025-09-05T00:11:18.391Z
+Generated: 2025-09-05T01:00:17.618Z
 
-## 🚀 Executive Summary
+## 🎯 OBJECTIVE
 
-**json-ultra-compress** isn't just another compression library—it's a **new category** that makes traditional codecs obsolete for JSON workloads.
+Compare json-ultra-compress against standard compression methods (gzip, brotli) on realistic datasets to demonstrate real-world performance benefits.
 
-### 🔥 Key Breakthroughs:
-- **10-35× faster encoding** than Brotli with competitive compression ratios
-- **70-90% bandwidth reduction** with selective field decode
-- **JSON-native architecture** that understands data structure, not just text
-- **Zero native dependencies** - runs anywhere TypeScript runs
+## 🧪 TEST DATASETS
 
-## 🎯 The Problem with Traditional Codecs
+- **api_responses**: Typical API responses with user events and metadata (480.2 KB)
+- **server_logs**: Structured application logs with metrics and metadata (716.5 KB)
+- **analytics_events**: User behavior analytics with nested properties (1848.6 KB)
+- **ecommerce_catalog**: E-commerce product catalog with reviews and inventory (532.2 KB)
 
-**Brotli, Zstd, Gzip treat JSON as plain text:**
-- Must decompress EVERYTHING to read one field
-- Slow encoding (3+ seconds for large datasets)
-- Native bindings (complex deployment)
-- No understanding of JSON structure
-
-**json-ultra-compress is JSON-aware:**
-- Columnar storage: one column per field
-- Selective decode: read only needed fields
-- 10-35× faster encoding
-- Pure TypeScript - edge/serverless ready
-
-## 📊 Revolutionary Performance Results
+## 📈 DETAILED RESULTS
 
 ### api_responses
 
 | Method                       | Size (KB) | Ratio | Comp Time (ms) | Decomp Time (ms) | Selective (ms) | Selective Size (KB) |
 |------------------------------|-----------|-------|----------------|------------------|----------------|---------------------|
-| Standard Gzip                | 45.7      | 9.5%  | 4.6            | 0.0              | N/A            | N/A                 |
-| Standard Brotli              | 34.0      | 7.1%  | 714.9          | 0.0              | N/A            | N/A                 |
-| json-ultra-compress (gzip)   | 42.5      | 8.9%  | 15.8           | 4.3              | N/A            | N/A                 |
-| json-ultra-compress (brotli) | 39.5      | 8.2%  | 18.5           | 3.3              | N/A            | N/A                 |
-| json-ultra-compress (hybrid) | 39.5      | 8.2%  | 41.8           | 4.1              | N/A            | N/A                 |
+| Standard Gzip                | 45.6      | 9.5%  | 5.5            | 0.0              | N/A            | N/A                 |
+| Standard Brotli              | 34.0      | 7.1%  | 873.6          | 0.0              | N/A            | N/A                 |
+| json-ultra-compress (gzip)   | 42.5      | 8.8%  | 17.3           | 4.3              | N/A            | N/A                 |
+| json-ultra-compress (brotli) | 39.4      | 8.2%  | 19.3           | 7.3              | N/A            | N/A                 |
+| json-ultra-compress (hybrid) | 39.4      | 8.2%  | 45.8           | 4.0              | N/A            | N/A                 |
 
-### Server Logs (716.6 KB structured data)
+### server_logs
 
-| Method                       | Size    | Ratio | Encode Time | Selective Decode |
-|------------------------------|---------|-------|-------------|------------------|
-| **json-ultra-compress (hybrid)** | **92 KB**   | **12.9%** | **83 ms** ⚡ | **109 KB** (85% reduction) |
-| Standard Brotli              | 88 KB   | 12.3% | **1,208 ms** 🐌 | ❌ N/A |
-| Standard Gzip                | 112 KB  | 15.7% | 7 ms        | ❌ N/A |
+| Method                       | Size (KB) | Ratio | Comp Time (ms) | Decomp Time (ms) | Selective (ms) | Selective Size (KB) |
+|------------------------------|-----------|-------|----------------|------------------|----------------|---------------------|
+| Standard Gzip                | 111.8     | 15.6% | 7.1            | 0.0              | N/A            | N/A                 |
+| Standard Brotli              | 87.7      | 12.2% | 1478.6         | 0.0              | N/A            | N/A                 |
+| json-ultra-compress (gzip)   | 97.0      | 13.5% | 51.1           | 24.9             | 4.8            | 109.2               |
+| json-ultra-compress (brotli) | 92.0      | 12.8% | 40.7           | 17.9             | 4.8            | 109.2               |
+| json-ultra-compress (hybrid) | 92.0      | 12.8% | 79.1           | 13.1             | 3.9            | 109.2               |
 
-**🎯 Result: 15× faster than Brotli, competitive compression, + selective decode capability**
+### analytics_events
 
-### Analytics Events (1.8 MB user behavior data)
-
-| Method                       | Size    | Ratio | Encode Time | Selective Decode |
-|------------------------------|---------|-------|-------------|------------------|
-| **json-ultra-compress (hybrid)** | **125 KB**  | **6.7%**  | **184 ms** ⚡ | **382 KB** (80% reduction) |
-| Standard Brotli              | 120 KB  | 6.5%  | **3,567 ms** 🐌 | ❌ N/A |
-| Standard Gzip                | 167 KB  | 9.0%  | 17 ms       | ❌ N/A |
-
-**🎯 Result: 19× faster than Brotli, better compression than Gzip, + 80% bandwidth savings**
+| Method                       | Size (KB) | Ratio | Comp Time (ms) | Decomp Time (ms) | Selective (ms) | Selective Size (KB) |
+|------------------------------|-----------|-------|----------------|------------------|----------------|---------------------|
+| Standard Gzip                | 167.4     | 9.1%  | 16.7           | 0.0              | N/A            | N/A                 |
+| Standard Brotli              | 119.8     | 6.5%  | 3647.4         | 0.0              | N/A            | N/A                 |
+| json-ultra-compress (gzip)   | 141.2     | 7.6%  | 92.6           | 44.5             | 12.7           | 381.7               |
+| json-ultra-compress (brotli) | 125.1     | 6.8%  | 91.3           | 42.0             | 12.6           | 381.7               |
+| json-ultra-compress (hybrid) | 125.1     | 6.8%  | 177.4          | 43.3             | 13.9           | 381.7               |
 
 ### ecommerce_catalog
 
 | Method                       | Size (KB) | Ratio | Comp Time (ms) | Decomp Time (ms) | Selective (ms) | Selective Size (KB) |
 |------------------------------|-----------|-------|----------------|------------------|----------------|---------------------|
-| Standard Gzip                | 41.4      | 7.6%  | 5.2            | 0.0              | N/A            | N/A                 |
-| Standard Brotli              | 29.3      | 5.4%  | 974.1          | 0.0              | N/A            | N/A                 |
-| json-ultra-compress (gzip)   | 37.2      | 6.8%  | 15.2           | 3.8              | N/A            | N/A                 |
-| json-ultra-compress (brotli) | 34.3      | 6.3%  | 15.4           | 4.1              | N/A            | N/A                 |
-| json-ultra-compress (hybrid) | 34.3      | 6.3%  | 39.3           | 4.0              | N/A            | N/A                 |
+| Standard Gzip                | 40.4      | 7.6%  | 3.7            | 0.0              | N/A            | N/A                 |
+| Standard Brotli              | 28.3      | 5.3%  | 911.6          | 0.0              | N/A            | N/A                 |
+| json-ultra-compress (gzip)   | 36.3      | 6.8%  | 13.4           | 3.7              | N/A            | N/A                 |
+| json-ultra-compress (brotli) | 33.5      | 6.3%  | 15.8           | 3.9              | N/A            | N/A                 |
+| json-ultra-compress (hybrid) | 33.5      | 6.3%  | 36.5           | 3.7              | N/A            | N/A                 |
 
 
-## 💡 Game-Changing Use Cases
+## 📊 BENCHMARK SUMMARY
 
-### 🔥 Selective Field Decode (Impossible with Brotli/Zstd)
+### api_responses (480.2 KB original)
+- **Best compression**: Standard Brotli at 7.1%
+- **vs Standard Gzip**: 13.4% better
 
-**Server Logs Example:**
-```bash
-# Traditional approach: decompress 716 KB to read user_id + timestamp
-brotli -d logs.br  # Must decode ALL fields
+### server_logs (716.5 KB original)
+- **Best compression**: Standard Brotli at 12.2%
+- **vs Standard Gzip**: 17.8% better
+- **Selective decode**: 15.2% of original size
 
-# json-ultra-compress: decode only what you need
-json-ultra-compress decompress-ndjson --fields=user_id,timestamp logs.juc
-# Result: 109 KB (85% bandwidth reduction)
-```
+### analytics_events (1848.6 KB original)
+- **Best compression**: Standard Brotli at 6.5%
+- **vs Standard Gzip**: 25.3% better
+- **Selective decode**: 20.6% of original size
 
-**Analytics Pipeline:**
-```typescript
-// Traditional: waste bandwidth on unused fields
-const fullData = await decompressAll(data); // 1.8 MB
-const projected = fullData.map(row => ({
-  user_id: row.user_id,
-  timestamp: row.timestamp
-}));
+### ecommerce_catalog (532.2 KB original)
+- **Best compression**: Standard Brotli at 5.3%
+- **vs Standard Gzip**: 17.1% better
 
-// json-ultra-compress: decode only needed columns
-const projected = await decompressNDJSON(data, {
-  fields: ['user_id', 'timestamp']
-}); // 382 KB (80% reduction)
-```
+## 🔍 KEY INSIGHTS
 
-## 🚀 Speed Revolution
+- **Hybrid codec** adapts compression strategy based on data characteristics
+- **Columnar NDJSON** enables efficient selective field decoding
+- **Best for structured data** with repeated field names and patterns
+- **Selective decode** can reduce bandwidth by 70-90% for analytics use cases
 
-### Encoding Performance Comparison
+## 💡 RECOMMENDED USE CASES
 
-| Dataset | json-ultra-compress | Standard Brotli | Speedup |
-|---------|-------------------|----------------|---------|
-| Server Logs | 83 ms | 1,208 ms | **15× faster** |
-| Analytics Events | 184 ms | 3,567 ms | **19× faster** |
-| API Responses | 42 ms | 715 ms | **17× faster** |
-| E-commerce | 39 ms | 974 ms | **25× faster** |
-
-**Average: 19× faster encoding than Brotli**
-
-## 🏆 Conclusion
-
-**json-ultra-compress represents a paradigm shift:**
-
-❌ **Old way:** "Compress everything, decompress everything"
-✅ **New way:** "Understand structure, decode what you need"
-
-❌ **Old way:** "Text compression with native bindings"
-✅ **New way:** "JSON-native compression, pure TypeScript"
-
-❌ **Old way:** "Choose between speed OR compression"
-✅ **New way:** "Get both speed AND compression AND selective access"
-
-### The Verdict
-For JSON/NDJSON workloads, json-ultra-compress isn't just better—it's **a completely new category** that makes traditional codecs obsolete.
-
-**Faster than Brotli. Smaller than Zstd. Smarter than both.**
-
----
-
-*Benchmark reproducible with: `npm run bench:comprehensive`*
+- 📊 **Analytics events**: High compression + selective field access
+- 🚨 **Application logs**: Structured data with repeated patterns
+- 🛒 **API responses**: JSON with nested objects and arrays
+- 📈 **Time series data**: Columnar storage benefits

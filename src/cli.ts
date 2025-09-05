@@ -59,7 +59,7 @@ program
   .option('-o, --out <file>', 'output .juc file', 'out.juc')
   .option('--codec <name>', 'codec: gzip|brotli|hybrid', 'hybrid')
   .option('--columnar', 'use columnar NDJSON encoding (recommended)', false)
-  .option('--workers <count>', 'worker pool size: number|auto|false (auto for large files)', 'false')
+  .option('--workers <count>', 'worker pool: number|auto|false (columnar only, auto for ≥32MB files)', 'false')
   .action(async (input, opts) => {
     const nd = await readFile(input, 'utf8');
     const workers = opts.workers === 'false' ? false
@@ -84,7 +84,7 @@ program
   .argument('<input>', 'input .juc')
   .option('-o, --out <file>', 'output .ndjson', 'out.ndjson')
   .option('--fields <fields>', 'selective decode: comma-separated field names (e.g., user_id,ts)')
-  .option('--workers <count>', 'worker pool size: number|auto|false (auto for large files)', 'false')
+  .option('--workers <count>', 'worker pool: number|auto|false (columnar only, auto for ≥50MB files)', 'false')
   .action(async (input, opts) => {
     const bytes = new Uint8Array(await readFile(input));
     const fields = opts.fields ? String(opts.fields).split(",").map((s: string) => s.trim()).filter(Boolean) : undefined;

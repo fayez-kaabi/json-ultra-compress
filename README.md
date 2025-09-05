@@ -229,6 +229,7 @@ json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto hug
 - **Speed**: 10-35× faster encoding than standard Brotli
 - **Selective decode**: 70-90% bandwidth reduction for typical analytics queries
 - **Worker pool**: Opt-in parallelization for large files (≥32MB or ≥64 windows)
+- **Workers scope**: Parallelize **columnar** windows across CPU cores for big jobs. Small jobs stay single-threaded to avoid overhead.
 - **Memory**: Efficient streaming processing, no full-file buffering required
 
 ## Notes & Limits

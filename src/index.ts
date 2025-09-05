@@ -77,29 +77,40 @@ function getWorkerPath(): string {
   }
 }
 
-// Parallel compression using worker pool
+// Parallel compression using worker pool with batching
 async function compressWithWorkers(chunks: Uint8Array[], codec: CodecName, workerCount: number): Promise<Uint8Array> {
   const pool = new WorkerPool(getWorkerPath(), workerCount);
 
   try {
-    // Create tasks for each chunk
-    const tasks = chunks.map((chunk, index) => {
-      const message: WorkerMessage = {
-        id: `compress-${index}`,
-        mode: 'encode',
-        windowBytes: chunk,
-        windowIndex: index,
-        opts: { codec }
-      };
-      return pool.run(message);
-    });
+    const batchSize = 16; // Process 16 windows at a time to control peak memory
+    const results: any[] = new Array(chunks.length);
 
-    // Wait for all compressions to complete
-    const results = await Promise.all(tasks);
+    // Process chunks in batches to avoid high peak RAM
+    for (let i = 0; i < chunks.length; i += batchSize) {
+      const batchEnd = Math.min(i + batchSize, chunks.length);
+      const batchTasks = [];
 
-    // Sort by window index to preserve order
-    results.sort((a, b) => a.windowIndex - b.windowIndex);
+      for (let j = i; j < batchEnd; j++) {
+        const message: WorkerMessage = {
+          id: `compress-${j}`,
+          mode: 'encode',
+          windowBytes: chunks[j],
+          windowIndex: j,
+          opts: { codec }
+        };
+        batchTasks.push(pool.run(message));
+      }
 
+      // Wait for this batch to complete
+      const batchResults = await Promise.all(batchTasks);
+
+      // Store results in correct positions
+      batchResults.forEach(result => {
+        results[result.windowIndex] = result;
+      });
+    }
+
+    // Results are already in correct order due to batching
     // Concatenate compressed chunks with newline separators
     const compressed = results.reduce((acc, result, idx) => {
       if (!result.result) throw new Error(`Compression failed for window ${result.windowIndex}`);
@@ -118,6 +129,7 @@ async function compressWithWorkers(chunks: Uint8Array[], codec: CodecName, worke
     });
 
   } finally {
+    // Always clean up workers, even on error
     await pool.destroy();
   }
 }
@@ -214,7 +226,13 @@ export async function compressNDJSON(inputNdjson: string, opts: NDJSONOptions = 
 
   // Check if we should use worker pool for compression
   await loadWorkerPool();
-  const workerCount = shouldUseWorkers ? shouldUseWorkers(inputBytes.length, chunks.length, opts.workers || false) : 0;
+  const workerCount = shouldUseWorkers ? shouldUseWorkers(
+    inputBytes.length,
+    chunks.length,
+    opts.workers || false,
+    opts.columnar || false,
+    false // not selective decode
+  ) : 0;
   let compressed: Uint8Array;
 
   if (workerCount > 0 && chunks.length > 1 && WorkerPool) {
