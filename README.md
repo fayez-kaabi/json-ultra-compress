@@ -3,24 +3,29 @@
 **JSON-native compression with selective field decode.**
 
 - 🚀 **10–35× faster** than Brotli on structured JSON/NDJSON
-- 📉 **70-90% bandwidth reduction** with selective decode
-- 🎯 **Selective decode**: read only the fields you need (user_id, ts, …)
-- 🌐 Pure TypeScript – zero native deps, works in Node, browsers, edge
+- 📉 **70–90% bandwidth reduction** with selective decode
+- 📊 **Columnar NDJSON**: store fields separately to skip what you don't need
+- 🌐 Pure TypeScript – zero native deps (Node, browsers, edge)
 - 🔒 CRC-safe, preserves empty lines perfectly
 
-## ⚡ Why it's Revolutionary
+> 👉 See full results in the [Comprehensive Benchmark Report](./benchmark-results/comprehensive-report.md).
 
-### Generic codecs (Brotli, Zstd):
-* Treat JSON as plain text
-* Must decompress **everything** to access one field
-* Heavy, native bindings (hard for edge/serverless)
+## ⚡ Why It's Different
 
-### **json-ultra-compress**:
-* Understands JSON structure (keys, enums, timestamps)
-* Stores NDJSON columnar: one column per field
-* ✅ Decode *only* selected fields (`--fields=user,ts`)
-* ✅ Empty line + CRC integrity
-* ✅ Pure TypeScript – runs anywhere
+| Approach | Generic Codecs (Brotli/Zstd) | **json-ultra-compress** |
+|----------|------------------------------|-------------------------|
+| **Data View** | 📄 Treats JSON as plain text | 🏗️ Understands JSON structure |
+| **Access Pattern** | 🔓 Must decompress EVERYTHING | 🎯 Decode only selected fields |
+| **Storage** | 📝 Row-wise text compression | 📊 Columnar field storage |
+| **Dependencies** | ⚙️ Native bindings (C/C++) | 🌐 Pure TypeScript |
+| **Deployment** | 🚫 Complex (platform-specific) | ✅ Universal (runs anywhere) |
+| **Performance** | 🐌 Slow encoding (seconds) | ⚡ Fast encoding (milliseconds) |
+| **Use Case** | 📦 Generic text compression | 🎯 JSON-native optimization |
+
+### 🚀 **The Revolutionary Difference:**
+
+**Traditional**: `{"user":123,"event":"click","meta":{...}}` → **compress as text**
+**json-ultra-compress**: Extract columns → `user: [123,124,125]`, `event: ["click","view","purchase"]` → **compress by field**
 
 ## 📊 Benchmarks
 
@@ -34,6 +39,8 @@
 
 👉 **Result:** Near-identical compression to Brotli, **15× faster encode**, and **field-level decoding Brotli/Zstd cannot do at all**.
 
+> *Methodology:* Wall-clock times recorded with `performance.now()` on Node 20; best of 5 runs; ratios computed vs original UTF-8 bytes. Reproduce with `npm run bench:comprehensive`.
+
 **Analytics Events (~1.8 MB)**
 
 | Codec             | Size    | Ratio | Encode Time | Selective Decode      |
@@ -43,6 +50,50 @@
 | Standard Gzip         | 167 KB  | 9.0%  | 17 ms       | ❌ N/A                 |
 
 👉 **Result:** Competitive compression, **19× faster encode**, **80% bandwidth savings** with selective decode.
+
+## 📈 Performance at Scale
+
+```
+Compression Ratio vs Dataset Size
+
+ 9% │ ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● Brotli
+    │
+ 8% │ ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○ json-ultra (10-35× faster)
+    │
+ 7% │
+    │
+ 6% │ ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● Brotli
+    │ ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○ json-ultra + selective decode
+    │
+ 5% │
+    └─────────────────────────────────────────────────────────────────────
+      1KB        100KB        1MB         10MB        100MB+
+                                                     (+ worker pool)
+
+● Standard compression    ○ json-ultra-compress    🎯 Selective decode advantage
+```
+
+> **📊 Performance TL;DR**
+> 🏎️ **10–35× faster encodes** than Brotli
+> 📉 **70–90% smaller** selective decode outputs
+> 🔒 **CRC-safe**, zero native deps
+> ⚡ **Worker pool** for 100MB+ datasets
+
+## ✅ When to Use / ❌ When Not to Use
+
+### ✅ **Perfect For:**
+- 📊 **Structured logs** - repeated field names, temporal patterns
+- 📈 **Analytics events** - user behavior, metrics, time-series data
+- 🛒 **API responses** - JSON with nested objects and consistent schemas
+- 🔄 **Data pipelines** - where selective field access matters
+- ⚡ **Real-time systems** - fast encoding beats max compression
+- 🌐 **Edge/serverless** - zero native dependencies
+
+### ❌ **Skip For:**
+- 🖼️ **Images/binaries** - not JSON, use specialized codecs
+- 📝 **Unstructured text** - novels, docs, use Brotli/Zstd
+- 🗃️ **One-time archival** - where max compression > speed
+- 📱 **Tiny payloads** - overhead not worth it (< 1KB)
 
 ## 💡 New Use Cases
 
@@ -80,7 +131,7 @@ const logs = [
   '{"user":"alice","event":"click","ts":"2024-01-01T10:00:00Z"}',
   '{"user":"bob","event":"view","ts":"2024-01-01T10:01:00Z"}',
   '{"user":"alice","event":"purchase","ts":"2024-01-01T10:02:00Z"}'
-].join('\\n');
+].join('\n');
 
 const columnar = await compressNDJSON(logs, { codec: 'hybrid', columnar: true });
 const back = await decompressNDJSON(columnar);              // full restore
@@ -101,6 +152,9 @@ json-ultra-compress decompress-ndjson access.juc -o restored.ndjson
 
 # 🔥 Select only two columns from a 100MB log without decoding the rest
 json-ultra-compress decompress-ndjson --fields=user_id,timestamp access.juc -o partial.ndjson
+
+# For huge datasets, add worker pool for parallel processing (columnar only)
+json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto massive-logs.ndjson -o massive.juc
 ```
 
 ## Why json-ultra-compress?
@@ -137,13 +191,13 @@ interface CompressOptions {
 }
 
 interface NDJSONOptions extends CompressOptions {
-  columnar?: boolean;  // default: false (enable for structured logs)
-  workers?: number | 'auto' | false; // default: false (opt-in for large files ≥32MB)
+  columnar?: boolean;                  // default: false
+  workers?: number | 'auto' | false;   // default: false; 'auto' for ≥32 MB or ≥64 windows (columnar only)
 }
 
 interface DecodeOptions {
-  fields?: string[];   // selective decode - the game changer!
-  workers?: number | 'auto' | false; // default: false (opt-in for large files)
+  fields?: string[];                   // selective decode: decode only requested columns
+  workers?: number | 'auto' | false;   // default: false; 'auto' for ≥50 MB selective decode
 }
 ```
 
@@ -182,7 +236,7 @@ const logs = Array.from({ length: 1000 }, (_, i) => JSON.stringify({
   source: ['web','mobile'][i % 2],
   duration_ms: Math.round(Math.random() * 1000),
   metadata: { ip: '192.168.1.' + (i % 255), session: 'sess_' + (i % 50) }
-})).join('\\n');
+})).join('\n');
 
 const rowwise  = await compressNDJSON(logs, { codec: 'hybrid' });
 const columnar = await compressNDJSON(logs, { codec: 'hybrid', columnar: true });
@@ -228,7 +282,7 @@ json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto hug
 - **Compression**: Competitive with Brotli (often within 1-2%)
 - **Speed**: 10-35× faster encoding than standard Brotli
 - **Selective decode**: 70-90% bandwidth reduction for typical analytics queries
-- **Worker pool**: Opt-in parallelization for large files (≥32MB or ≥64 windows)
+- **Worker pool**: Opt-in parallelization for large files (≥32MB or ≥64 windows, columnar only)
 - **Workers scope**: Parallelize **columnar** windows across CPU cores for big jobs. Small jobs stay single-threaded to avoid overhead.
 - **Memory**: Efficient streaming processing, no full-file buffering required
 
