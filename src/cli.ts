@@ -21,8 +21,11 @@ program
   .description('JSON-native compression with selective field decode. Faster than Brotli. Smarter than both.')
   .version(version);
 
-program.hook('preAction', () => {
-  console.error(chalk.cyan(logo));
+program.hook('preAction', (thisCommand, actionCommand) => {
+  // Only show logo for actual commands, not help
+  if (actionCommand.name() !== 'help') {
+    console.error(chalk.cyan(logo));
+  }
 });
 
 

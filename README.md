@@ -3,7 +3,7 @@
 **JSON-native compression with selective field decode.**
 
 - 🚀 **10–35× faster** than Brotli on structured JSON/NDJSON
-- 📉 **60–70% smaller logs** with columnar compression
+- 📉 **70-90% bandwidth reduction** with selective decode
 - 🎯 **Selective decode**: read only the fields you need (user_id, ts, …)
 - 🌐 Pure TypeScript – zero native deps, works in Node, browsers, edge
 - 🔒 CRC-safe, preserves empty lines perfectly
