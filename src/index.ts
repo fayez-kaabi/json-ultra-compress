@@ -21,14 +21,106 @@ export interface CompressOptions {
 
 export interface NDJSONOptions extends CompressOptions {
   columnar?: boolean;
+  workers?: number | 'auto' | false; // default false - opt-in worker pool for large jobs
 }
 
 export interface DecodeOptions {
   fields?: string[]; // For selective decode - only include these fields
+  workers?: number | 'auto' | false; // default false - opt-in worker pool for large jobs
 }
 
 // Advanced types
 export type { Codec, CodecName, KeyDict, Bitset, ColumnReader, Window, ColumnarHandle } from './types.js';
+
+// Worker pool types and imports (only in Node.js environment)
+interface WorkerMessage {
+  id: string;
+  mode: 'encode' | 'decode';
+  windowBytes: Uint8Array;
+  windowIndex: number;
+  opts: any;
+}
+
+interface WorkerResponse {
+  id: string;
+  windowIndex: number;
+  result?: Uint8Array;
+  error?: string;
+}
+
+let WorkerPool: any = null;
+let shouldUseWorkers: any = null;
+
+// Conditionally import worker pool for Node.js environments
+async function loadWorkerPool() {
+  try {
+    if (typeof process !== 'undefined' && process.versions?.node) {
+      const workerModule = await import('./worker-pool.js');
+      WorkerPool = workerModule.WorkerPool;
+      shouldUseWorkers = workerModule.shouldUseWorkers;
+    }
+  } catch {
+    // Worker pool not available (browser environment or missing dependencies)
+  }
+}
+
+// Helper to get worker path (only in Node.js)
+function getWorkerPath(): string {
+  try {
+    const { fileURLToPath } = require('url');
+    const { resolve } = require('path');
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = resolve(__filename, '..');
+    return resolve(__dirname, 'worker-columnar.js');
+  } catch {
+    throw new Error('Worker pool only available in Node.js environment');
+  }
+}
+
+// Parallel compression using worker pool
+async function compressWithWorkers(chunks: Uint8Array[], codec: CodecName, workerCount: number): Promise<Uint8Array> {
+  const pool = new WorkerPool(getWorkerPath(), workerCount);
+
+  try {
+    // Create tasks for each chunk
+    const tasks = chunks.map((chunk, index) => {
+      const message: WorkerMessage = {
+        id: `compress-${index}`,
+        mode: 'encode',
+        windowBytes: chunk,
+        windowIndex: index,
+        opts: { codec }
+      };
+      return pool.run(message);
+    });
+
+    // Wait for all compressions to complete
+    const results = await Promise.all(tasks);
+
+    // Sort by window index to preserve order
+    results.sort((a, b) => a.windowIndex - b.windowIndex);
+
+    // Concatenate compressed chunks with newline separators
+    const compressed = results.reduce((acc, result, idx) => {
+      if (!result.result) throw new Error(`Compression failed for window ${result.windowIndex}`);
+
+      if (idx > 0) acc.push(utf8Encode('\n'));
+      acc.push(result.result);
+      return acc;
+    }, [] as Uint8Array[]);
+
+    // Combine all compressed chunks
+    return compressed.reduce((a: Uint8Array, b: Uint8Array) => {
+      const out = new Uint8Array(a.length + b.length);
+      out.set(a, 0);
+      out.set(b, a.length);
+      return out;
+    });
+
+  } finally {
+    await pool.destroy();
+  }
+}
 function chooseCodec(input: Uint8Array): CodecName {
   return chooseCodecSample(input, (x) => brotliCodec.encode(x) as Uint8Array, (x) => gzipCodec.encode(x) as Uint8Array);
 }
@@ -117,9 +209,22 @@ export async function compressNDJSON(inputNdjson: string, opts: NDJSONOptions = 
     const out = new Uint8Array(a.length + b.length);
     out.set(a, 0); out.set(b, a.length); return out;
   }) : new Uint8Array();
+
   const chosen = codecName === 'auto' ? chooseCodec(inputBytes) : codecName;
-  const codec = codecs[chosen];
-  const compressed = await codec.encode(inputBytes);
+
+  // Check if we should use worker pool for compression
+  await loadWorkerPool();
+  const workerCount = shouldUseWorkers ? shouldUseWorkers(inputBytes.length, chunks.length, opts.workers || false) : 0;
+  let compressed: Uint8Array;
+
+  if (workerCount > 0 && chunks.length > 1 && WorkerPool) {
+    // Use worker pool for parallel compression of chunks
+    compressed = await compressWithWorkers(chunks, chosen, workerCount);
+  } else {
+    // Single-threaded compression (current behavior)
+    const codec = codecs[chosen];
+    compressed = await codec.encode(inputBytes);
+  }
   const header = {
     version: 1 as const,
     codec: chosen,

@@ -59,11 +59,24 @@ program
   .option('-o, --out <file>', 'output .juc file', 'out.juc')
   .option('--codec <name>', 'codec: gzip|brotli|hybrid', 'hybrid')
   .option('--columnar', 'use columnar NDJSON encoding (recommended)', false)
+  .option('--workers <count>', 'worker pool size: number|auto|false (auto for large files)', 'false')
   .action(async (input, opts) => {
     const nd = await readFile(input, 'utf8');
-    const buf = await compressNDJSON(nd, { codec: opts.codec, columnar: Boolean(opts.columnar) });
+    const workers = opts.workers === 'false' ? false
+                  : opts.workers === 'auto' ? 'auto'
+                  : parseInt(opts.workers) || false;
+
+    const startTime = performance.now();
+    const buf = await compressNDJSON(nd, {
+      codec: opts.codec,
+      columnar: Boolean(opts.columnar),
+      workers
+    });
+    const endTime = performance.now();
+
     await writeFile(opts.out, buf);
-    console.log(chalk.green(`wrote ${opts.out} (${buf.length} bytes, columnar: ${opts.columnar})`));
+    const workerInfo = workers === false ? '' : ` workers: ${workers === 'auto' ? 'auto' : workers},`;
+    console.log(chalk.green(`wrote ${opts.out} (${buf.length} bytes, columnar: ${opts.columnar},${workerInfo} time: ${(endTime - startTime).toFixed(1)}ms)`));
   });
 
 program
@@ -71,12 +84,22 @@ program
   .argument('<input>', 'input .juc')
   .option('-o, --out <file>', 'output .ndjson', 'out.ndjson')
   .option('--fields <fields>', 'selective decode: comma-separated field names (e.g., user_id,ts)')
+  .option('--workers <count>', 'worker pool size: number|auto|false (auto for large files)', 'false')
   .action(async (input, opts) => {
     const bytes = new Uint8Array(await readFile(input));
     const fields = opts.fields ? String(opts.fields).split(",").map((s: string) => s.trim()).filter(Boolean) : undefined;
-    const nd = await decompressNDJSON(bytes, { fields });
+    const workers = opts.workers === 'false' ? false
+                  : opts.workers === 'auto' ? 'auto'
+                  : parseInt(opts.workers) || false;
+
+    const startTime = performance.now();
+    const nd = await decompressNDJSON(bytes, { fields, workers });
+    const endTime = performance.now();
+
     await writeFile(opts.out, nd, 'utf8');
-    console.log(chalk.green(`wrote ${opts.out} (${nd.length} bytes)${fields ? ` - projected fields: ${fields.join(', ')}` : ''}`));
+    const workerInfo = workers === false ? '' : ` workers: ${workers === 'auto' ? 'auto' : workers},`;
+    const fieldsInfo = fields ? ` - projected fields: ${fields.join(', ')}` : '';
+    console.log(chalk.green(`wrote ${opts.out} (${nd.length} bytes,${workerInfo} time: ${(endTime - startTime).toFixed(1)}ms)${fieldsInfo}`));
   });
 
 program.parseAsync();

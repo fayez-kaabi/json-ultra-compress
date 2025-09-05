@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.0] - 2024-01-15
 
-### 🎯 **Selective Decode - Fully Implemented**
+### 🎯 **Selective Decode + Worker Pool - Production Ready**
 
 #### ✅ **New Features (Ready to Use)**
 - **✅ Selective decode API** - `decompressNDJSON(data, { fields: ['user_id', 'timestamp'] })`
@@ -17,19 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **✅ Empty line preservation** - maintains original NDJSON structure during selective decode
 - **✅ Mixed schema support** - handles missing fields gracefully across different record types
 - **✅ All data types** - works with strings, numbers, booleans, null values, nested objects
+- **✅ Worker pool support** - `workers: 'auto'` for parallel processing of large files (≥32MB)
+- **✅ CLI `--workers` option** - `json-ultra-compress compress-ndjson --workers=auto file.ndjson`
 
 #### ✅ **Performance (Measured & Delivered)**
 - **✅ 70-90% bandwidth reduction** - only decode requested columns (vs full decompression)
 - **✅ 3-15ms selective decode time** - extract specific fields without touching other data
 - **✅ Zero overhead for full decode** - maintains existing performance when no fields specified
 - **✅ 8 comprehensive test cases** - covering edge cases, mixed schemas, and error handling
+- **✅ Worker pool auto-detection** - automatically uses workers for files ≥32MB or ≥64 windows
+- **✅ Cross-platform worker support** - Node.js worker threads, browser compatibility maintained
 
-#### 🚀 **Use Cases Now Possible** (Thanks to Selective Decode)
+#### 🚀 **Use Cases Now Possible** (Thanks to Selective Decode + Worker Pool)
 - **Analytics pipelines** - `fields: ['user_id', 'timestamp', 'campaign_id']` for 80%+ bandwidth savings
 - **Incident response** - `fields: ['error_code', 'timestamp']` to quickly scan large log archives
 - **Streaming filters** - route/filter data streams without full JSON hydration overhead
 - **Time-series queries** - extract only temporal + key fields for dashboard APIs
 - **Cost optimization** - reduce data transfer costs by 70-90% in analytics workloads
+- **Large-scale processing** - `workers: 'auto'` for multi-GB log files and data pipelines
 
 #### Technical Details
 - Added `Bitset`, `ColumnReader`, `Window`, and `ColumnarHandle` interfaces

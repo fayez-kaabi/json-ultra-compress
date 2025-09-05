@@ -42,24 +42,24 @@ export class WorkerPool<TReq extends WorkerMessage, TRes extends WorkerResponse>
 
   private spawn() {
     const worker = new Worker(this.workerPath);
-    
+
     worker.on('message', (response: TRes) => {
       const task = this.pendingTasks.get(response.id);
       if (!task) return;
-      
+
       this.pendingTasks.delete(response.id);
       this.busy.delete(worker);
       this.idle.push(worker);
-      
+
       if (response.error) {
         task.reject(new Error(`Worker error (window ${response.windowIndex}): ${response.error}`));
       } else {
         task.resolve(response);
       }
-      
+
       this.processQueue();
     });
-    
+
     worker.on('error', (error) => {
       // Find and reject all tasks for this worker
       for (const [id, task] of this.pendingTasks) {
@@ -68,7 +68,7 @@ export class WorkerPool<TReq extends WorkerMessage, TRes extends WorkerResponse>
           task.reject(error);
         }
       }
-      
+
       this.busy.delete(worker);
       // Respawn worker
       const index = this.all.indexOf(worker);
@@ -76,13 +76,13 @@ export class WorkerPool<TReq extends WorkerMessage, TRes extends WorkerResponse>
         this.all[index] = this.spawn();
       }
     });
-    
+
     worker.on('exit', (code) => {
       if (code !== 0) {
         console.warn(`Worker exited with code ${code}`);
       }
     });
-    
+
     this.idle.push(worker);
     this.all.push(worker);
     return worker;
@@ -91,7 +91,7 @@ export class WorkerPool<TReq extends WorkerMessage, TRes extends WorkerResponse>
   async run(req: TReq): Promise<TRes> {
     return new Promise((resolve, reject) => {
       const task: WorkerTask<TReq, TRes> = { req, resolve, reject };
-      
+
       if (this.idle.length > 0) {
         this.assignTask(task);
       } else {
@@ -106,12 +106,14 @@ export class WorkerPool<TReq extends WorkerMessage, TRes extends WorkerResponse>
       this.queue.push(task);
       return;
     }
-    
+
     this.busy.add(worker);
     this.pendingTasks.set(task.req.id, task);
-    
+
     // Transfer ArrayBuffer to avoid copying
-    const transferList = task.req.windowBytes ? [task.req.windowBytes.buffer] : [];
+    const transferList = task.req.windowBytes?.buffer instanceof ArrayBuffer
+      ? [task.req.windowBytes.buffer]
+      : [];
     worker.postMessage(task.req, transferList);
   }
 
@@ -151,16 +153,16 @@ export function getOptimalPoolSize(): number {
  * Determine if workers should be used based on input size
  */
 export function shouldUseWorkers(
-  inputSize: number, 
-  windowCount: number, 
+  inputSize: number,
+  windowCount: number,
   workersOption: number | 'auto' | false
 ): number {
   if (workersOption === false) return 0;
   if (typeof workersOption === 'number') return workersOption;
-  
+
   // Auto mode: use workers for large inputs
   const isLargeInput = inputSize >= 32 * 1024 * 1024; // 32MB
   const isManyWindows = windowCount >= 64;
-  
+
   return (isLargeInput || isManyWindows) ? getOptimalPoolSize() : 0;
 }

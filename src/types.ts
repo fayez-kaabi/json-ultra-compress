@@ -55,4 +55,9 @@ export interface ColumnarHandle {
   keySet: Set<string>;          // union of keys across windows (optional)
 }
 
+// Worker pool options
+export interface WorkerOptions {
+  workers?: number | 'auto' | false; // default false
+}
+
 

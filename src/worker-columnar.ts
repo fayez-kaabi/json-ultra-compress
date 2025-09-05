@@ -13,48 +13,49 @@ if (!parentPort) {
 
 parentPort.on('message', async (message: WorkerMessage) => {
   const { id, mode, windowBytes, windowIndex, opts } = message;
-  
+
   try {
     let result: Uint8Array;
-    
+
     if (mode === 'encode') {
       // Encode window with specified codec
       const codec = codecs[opts.codec || 'hybrid'];
       if (!codec) {
         throw new Error(`Unknown codec: ${opts.codec}`);
       }
-      
+
       result = await codec.encode(windowBytes);
-      
+
     } else if (mode === 'decode') {
       // Decode window with specified codec
       const codec = codecs[opts.codec || 'hybrid'];
       if (!codec) {
         throw new Error(`Unknown codec: ${opts.codec}`);
       }
-      
+
       result = await codec.decode(windowBytes);
-      
+
     } else {
       throw new Error(`Unknown mode: ${mode}`);
     }
-    
+
     const response: WorkerResponse = {
       id,
       windowIndex,
       result
     };
-    
+
     // Transfer result buffer to avoid copying
-    parentPort!.postMessage(response, [result.buffer]);
-    
+    const transferList = result.buffer instanceof ArrayBuffer ? [result.buffer] : [];
+    parentPort!.postMessage(response, transferList);
+
   } catch (error) {
     const response: WorkerResponse = {
       id,
       windowIndex,
       error: error instanceof Error ? error.message : String(error)
     };
-    
+
     parentPort!.postMessage(response);
   }
 });

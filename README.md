@@ -138,10 +138,12 @@ interface CompressOptions {
 
 interface NDJSONOptions extends CompressOptions {
   columnar?: boolean;  // default: false (enable for structured logs)
+  workers?: number | 'auto' | false; // default: false (opt-in for large files ≥32MB)
 }
 
 interface DecodeOptions {
   fields?: string[];   // selective decode - the game changer!
+  workers?: number | 'auto' | false; // default: false (opt-in for large files)
 }
 ```
 
@@ -215,6 +217,9 @@ ls -lh your-logs.ndjson logs.juc
 # Test selective decode magic
 json-ultra-compress decompress-ndjson --fields=user_id,timestamp logs.juc -o partial.ndjson
 ls -lh partial.ndjson  # Should be 70-90% smaller!
+
+# For large files (≥32MB), use workers for faster processing
+json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto huge-logs.ndjson -o huge.juc
 ```
 
 ## Performance Notes
@@ -223,6 +228,7 @@ ls -lh partial.ndjson  # Should be 70-90% smaller!
 - **Compression**: Competitive with Brotli (often within 1-2%)
 - **Speed**: 10-35× faster encoding than standard Brotli
 - **Selective decode**: 70-90% bandwidth reduction for typical analytics queries
+- **Worker pool**: Opt-in parallelization for large files (≥32MB or ≥64 windows)
 - **Memory**: Efficient streaming processing, no full-file buffering required
 
 ## Notes & Limits
