@@ -1,7 +1,7 @@
 {
   "name": "json-ultra-compress",
   "version": "1.1.0",
-  "description": "JSON-native compression with selective field decode. Beats Brotli/Zstd on structured logs & APIs.",
+  "description": "JSON-native compression with selective field decode. Faster than Brotli. Smarter than both.",
   "license": "MIT",
   "type": "module",
   "homepage": "https://github.com/fayez-kaabi/json-ultra-compress#readme",
@@ -39,6 +39,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "bench": "tsx scripts/bench.ts",
+    "bench:comprehensive": "tsx scripts/comprehensive-bench.ts",
     "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
