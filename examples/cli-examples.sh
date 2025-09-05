@@ -42,17 +42,17 @@ echo "Original file size:"
 wc -c sample-logs.ndjson
 
 echo "Compressing with hybrid codec (row-wise):"
-json-ultra-compress compress --codec=hybrid < sample-logs.ndjson > logs-row.jopt
-wc -c logs-row.jopt
+json-ultra-compress compress-ndjson --codec=hybrid sample-logs.ndjson -o logs-row.juc
+wc -c logs-row.juc
 
 echo "Compressing with hybrid codec (columnar - the magic!):"
-json-ultra-compress compress --codec=hybrid --columnar < sample-logs.ndjson > logs-columnar.jopt
-wc -c logs-columnar.jopt
+json-ultra-compress compress-ndjson --codec=hybrid --columnar sample-logs.ndjson -o logs-columnar.juc
+wc -c logs-columnar.juc
 
 echo "Compression comparison:"
-echo "Row-wise:  $(wc -c < logs-row.jopt) bytes"
-echo "Columnar:  $(wc -c < logs-columnar.jopt) bytes"
-echo "Improvement: $(echo "scale=1; ($(wc -c < logs-row.jopt) - $(wc -c < logs-columnar.jopt)) * 100 / $(wc -c < logs-row.jopt)" | bc)% better"
+echo "Row-wise:  $(wc -c < logs-row.juc) bytes"
+echo "Columnar:  $(wc -c < logs-columnar.juc) bytes"
+echo "Improvement: $(echo "scale=1; ($(wc -c < logs-row.juc) - $(wc -c < logs-columnar.juc)) * 100 / $(wc -c < logs-row.juc)" | bc)% better"
 echo
 
 # Example 2: Different codecs
@@ -61,14 +61,14 @@ echo "=============================="
 
 echo "Testing different codecs on the same data:"
 
-json-ultra-compress compress --codec=brotli < sample-logs.ndjson > logs-brotli.jopt
-json-ultra-compress compress --codec=gzip < sample-logs.ndjson > logs-gzip.jopt
-json-ultra-compress compress --codec=hybrid < sample-logs.ndjson > logs-hybrid.jopt
+json-ultra-compress compress-ndjson --codec=brotli sample-logs.ndjson -o logs-brotli.juc
+json-ultra-compress compress-ndjson --codec=gzip sample-logs.ndjson -o logs-gzip.juc
+json-ultra-compress compress-ndjson --codec=hybrid sample-logs.ndjson -o logs-hybrid.juc
 
 echo "Results:"
-echo "Brotli:  $(wc -c < logs-brotli.jopt) bytes"
-echo "Gzip:    $(wc -c < logs-gzip.jopt) bytes"
-echo "Hybrid:  $(wc -c < logs-hybrid.jopt) bytes"
+echo "Brotli:  $(wc -c < logs-brotli.juc) bytes"
+echo "Gzip:    $(wc -c < logs-gzip.juc) bytes"
+echo "Hybrid:  $(wc -c < logs-hybrid.juc) bytes"
 echo
 
 # Example 3: JSON (not NDJSON) compression
@@ -79,24 +79,37 @@ echo "Original JSON file size:"
 wc -c sample-api.json
 
 echo "Compressing with hybrid codec:"
-json-ultra-compress compress --codec=hybrid < sample-api.json > api-compressed.jopt
-wc -c api-compressed.jopt
+json-ultra-compress compress --codec=hybrid sample-api.json -o api-compressed.juc
+wc -c api-compressed.juc
 
 echo "Decompressing to verify:"
-json-ultra-compress decompress < api-compressed.jopt > api-restored.json
+json-ultra-compress decompress api-compressed.juc -o api-restored.json
 echo "Integrity check: $(diff sample-api.json api-restored.json && echo '✅ Perfect' || echo '❌ Failed')"
 echo
 
-# Example 4: Selective decode simulation
-echo "⚡ Example 4: Selective Decode (Simulated)"
-echo "========================================="
+# Example 4: Selective decode (THE REVOLUTIONARY FEATURE!)
+echo "🎯 Example 4: Selective Decode (FULLY IMPLEMENTED!)"
+echo "=================================================="
 
 echo "Full decompression:"
-time json-ultra-compress decompress < logs-columnar.jopt > /dev/null
+time json-ultra-compress decompress-ndjson logs-columnar.juc -o full-output.ndjson
+echo "Full output size: $(wc -c < full-output.ndjson) bytes"
 
-echo "In the future, you'll be able to do:"
-echo "json-ultra-compress decompress --fields=user_id,event,timestamp < logs-columnar.jopt"
-echo "This will read only the specified fields, making it much faster!"
+echo
+echo "🔥 Selective decode - only user_id and event fields:"
+time json-ultra-compress decompress-ndjson --fields=user_id,event logs-columnar.juc -o selective-output.ndjson
+echo "Selective output size: $(wc -c < selective-output.ndjson) bytes"
+
+echo
+echo "Bandwidth reduction: $(echo "scale=1; ($(wc -c < full-output.ndjson) - $(wc -c < selective-output.ndjson)) * 100 / $(wc -c < full-output.ndjson)" | bc)%"
+
+echo
+echo "Sample full record:"
+head -1 full-output.ndjson
+echo "Sample selective record (2 fields only):"
+head -1 selective-output.ndjson
+
+rm -f full-output.ndjson selective-output.ndjson
 echo
 
 # Example 5: Pipeline usage
@@ -107,20 +120,20 @@ echo "json-ultra-compress works great in pipelines:"
 echo
 
 echo "# Compress logs from a service"
-echo "tail -f /var/log/app.ndjson | json-ultra-compress compress --codec=hybrid --columnar > compressed-stream.jopt"
+echo "tail -f /var/log/app.ndjson | json-ultra-compress compress-ndjson --codec=hybrid --columnar -o compressed-stream.juc"
 echo
 
 echo "# Process specific fields from compressed logs"
-echo "json-ultra-compress decompress --fields=timestamp,user_id,error < compressed-stream.jopt | jq '.error | select(. != null)'"
+echo "json-ultra-compress decompress-ndjson --fields=timestamp,user_id,error compressed-stream.juc | jq '.error | select(. != null)'"
 echo
 
 echo "# Compress API responses for caching"
-echo "curl https://api.example.com/users | json-ultra-compress compress --codec=hybrid > users-cache.jopt"
+echo "curl https://api.example.com/users | json-ultra-compress compress --codec=hybrid -o users-cache.juc"
 echo
 
 # Cleanup
 echo "🧹 Cleaning up sample files..."
-rm -f sample-logs.ndjson sample-api.json *.jopt api-restored.json
+rm -f sample-logs.ndjson sample-api.json *.juc api-restored.json
 echo "✅ Cleanup complete"
 echo
 

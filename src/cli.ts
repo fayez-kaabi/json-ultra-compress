@@ -3,6 +3,9 @@ import { Command } from 'commander';
 import { readFile, writeFile } from 'fs/promises';
 import chalk from 'chalk';
 import { compress, compressNDJSON, decompress, decompressNDJSON } from './index.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
 
 const logo = `
    _                  _              _           _
@@ -15,8 +18,8 @@ const logo = `
 const program = new Command();
 program
   .name('json-ultra-compress')
-  .description('JSON-native compression with selective field decode. Beats Brotli/Zstd on structured logs & APIs.')
-  .version('1.1.0');
+  .description('JSON-native compression with selective field decode. Faster than Brotli. Smarter than both.')
+  .version(version);
 
 program.hook('preAction', () => {
   console.error(chalk.cyan(logo));

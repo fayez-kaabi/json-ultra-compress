@@ -4,7 +4,7 @@
  * Demonstrates the power of reading only specific fields from compressed data
  */
 
-import { compressNDJSON, decompressNDJSON } from 'json-ultra-compress';
+import { compressNDJSON, decompressNDJSON } from '../dist/index.js';
 
 async function selectiveDecodeDemo() {
   console.log('⚡ Selective Decode Demo\n');
@@ -59,7 +59,7 @@ async function selectiveDecodeDemo() {
   console.log(`Compressed size: ${Math.round(compressed.length / 1024)}KB`);
   console.log(`Compression ratio: ${(compressed.length / logs.length * 100).toFixed(1)}%\n`);
 
-  // Benchmark: Full decode vs selective decode simulation
+  // Benchmark: Full decode vs REAL selective decode
   console.log('📊 Performance Comparison');
   console.log('=' .repeat(25));
 
@@ -69,47 +69,52 @@ async function selectiveDecodeDemo() {
   const fullTime = performance.now() - fullStart;
 
   console.log(`Full decode: ${fullTime.toFixed(1)}ms`);
+  console.log(`Full size: ${Math.round(fullDecoded.length / 1024)}KB`);
 
-  // Simulate selective decode by parsing only needed fields
+  // 🔥 REAL selective decode - only decode 4 fields out of 15+
   const selectiveStart = performance.now();
-  const selectiveData = fullDecoded.split('\n')
-    .filter(line => line.trim())
-    .map(line => {
-      const obj = JSON.parse(line);
-      return JSON.stringify({
-        timestamp: obj.timestamp,
-        user_id: obj.user_id,
-        event_type: obj.event_type,
-        duration_ms: obj.duration_ms
-      });
-    })
-    .join('\n');
+  const selectiveDecoded = await decompressNDJSON(compressed, {
+    fields: ['timestamp', 'user_id', 'event_type', 'duration_ms']
+  });
   const selectiveTime = performance.now() - selectiveStart;
 
-  console.log(`Selective decode (4 fields): ${(fullTime + selectiveTime).toFixed(1)}ms`);
-  console.log(`Selective output size: ${Math.round(selectiveData.length / 1024)}KB`);
-  console.log(`Size reduction: ${((logs.length - selectiveData.length) / logs.length * 100).toFixed(1)}%\n`);
+  console.log(`🎯 Selective decode (4 fields): ${selectiveTime.toFixed(1)}ms`);
+  console.log(`Selective size: ${Math.round(selectiveDecoded.length / 1024)}KB`);
+  const reduction = ((fullDecoded.length - selectiveDecoded.length) / fullDecoded.length * 100);
+  console.log(`🚀 Bandwidth reduction: ${reduction.toFixed(1)}%\n`);
 
   // Show sample output
   console.log('📝 Sample Selective Output (first 3 records):');
   console.log('-'.repeat(50));
-  selectiveData.split('\n').slice(0, 3).forEach((line, i) => {
-    const obj = JSON.parse(line);
-    console.log(`${i + 1}. User: ${obj.user_id}, Event: ${obj.event_type}, Duration: ${obj.duration_ms}ms`);
+  selectiveDecoded.split('\n').slice(0, 3).forEach((line, i) => {
+    if (line.trim()) {
+      const obj = JSON.parse(line);
+      console.log(`${i + 1}. User: ${obj.user_id}, Event: ${obj.event_type}, Duration: ${obj.duration_ms}ms`);
+    }
   });
 
-  console.log('\n💡 Real-world Benefits:');
-  console.log('  • Read only the fields you need for analytics');
-  console.log('  • Massive bandwidth savings for log processing');
-  console.log('  • Perfect for time-series analysis pipelines');
-  console.log('  • Ideal for edge computing with limited resources');
+  // Test different field combinations
+  console.log('\n🔬 Testing Different Field Combinations:');
 
-  console.log('\n🚀 Future: True selective decode will skip unused columns entirely!');
+  const timestampOnly = await decompressNDJSON(compressed, { fields: ['timestamp'] });
+  const timestampReduction = ((fullDecoded.length - timestampOnly.length) / fullDecoded.length * 100);
+  console.log(`⏰ Timestamp only: ${timestampReduction.toFixed(1)}% reduction`);
+
+  const userEvents = await decompressNDJSON(compressed, { fields: ['user_id', 'event_type'] });
+  const userEventsReduction = ((fullDecoded.length - userEvents.length) / fullDecoded.length * 100);
+  console.log(`👤 User + Events: ${userEventsReduction.toFixed(1)}% reduction`);
+
+  console.log('\n💡 Real-world Benefits:');
+  console.log('  • ✅ Read only the fields you need for analytics');
+  console.log('  • ✅ Massive bandwidth savings for log processing');
+  console.log('  • ✅ Perfect for time-series analysis pipelines');
+  console.log('  • ✅ Ideal for edge computing with limited resources');
+  console.log('  • ✅ Works TODAY - not a future feature!');
+
+  console.log('\n🎯 Revolutionary: Selective decode is FULLY IMPLEMENTED!');
 }
 
 // Run if called directly
-if (import.meta.url.endsWith(process.argv[1])) {
-  selectiveDecodeDemo().catch(console.error);
-}
+selectiveDecodeDemo().catch(console.error);
 
 export { selectiveDecodeDemo };

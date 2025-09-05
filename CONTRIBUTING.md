@@ -12,7 +12,7 @@ cd json-ultra-compress
 # Install dependencies
 npm install
 
-# Run tests (should be 32/32 passing)
+# Run tests (should be 40/40 passing)
 npm test
 
 # Build the project
@@ -76,8 +76,8 @@ Currently simulated - implement true selective decode that skips unused columns:
 
 ```typescript
 // Goal: Read only specified fields from columnar data
-const partial = await decompressNDJSON(compressed, { 
-  fields: ['timestamp', 'user_id', 'event_type'] 
+const partial = await decompressNDJSON(compressed, {
+  fields: ['timestamp', 'user_id', 'event_type']
 });
 ```
 
@@ -158,7 +158,7 @@ npm run format        # Auto-format code
 ## What
 Brief description of the change
 
-## Why  
+## Why
 Motivation and context for the change
 
 ## How
