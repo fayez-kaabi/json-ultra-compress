@@ -109,7 +109,7 @@ Compression Ratio vs Dataset Size
 **[Try the live calculator →](https://fayez-kaabi.github.io/json-ultra-compress-demo/)**
 
 Test compression ratios and selective decode benefits with realistic datasets:
-- **JSON vs NDJSON** format comparison  
+- **JSON vs NDJSON** format comparison
 - **Tiny/Medium/Large** presets (1K to 50K rows)
 - **Live metrics**: bandwidth saved, CPU avoided, query speedup
 - **Download outputs** in various compressed formats
