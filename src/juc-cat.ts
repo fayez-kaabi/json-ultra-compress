@@ -57,22 +57,22 @@ function formatLogEntry(obj: any, format: OutputFormat): string {
 
 function shouldIncludeLine(obj: any, since?: string, until?: string): boolean {
   if (!since && !until) return true;
-  
+
   const ts = obj.ts || obj.timestamp;
   if (!ts) return true; // Include if no timestamp
-  
+
   const lineTime = new Date(ts).getTime();
-  
+
   if (since) {
     const sinceTime = new Date(since).getTime();
     if (lineTime < sinceTime) return false;
   }
-  
+
   if (until) {
     const untilTime = new Date(until).getTime();
     if (lineTime > untilTime) return false;
   }
-  
+
   return true;
 }
 
@@ -92,22 +92,22 @@ program
   .action(async (input, opts) => {
     const fields = opts.fields ? String(opts.fields).split(',').map((s: string) => s.trim()).filter(Boolean) : undefined;
     const format = opts.format as OutputFormat;
-    
+
     async function processFile() {
       try {
         const bytes = new Uint8Array(await readFile(input));
         const ndjson = await decompressNDJSON(bytes, { fields });
-        
+
         const lines = ndjson.split('\n').filter(line => line.trim());
-        
+
         for (const line of lines) {
           try {
             const obj = JSON.parse(line);
-            
+
             if (!shouldIncludeLine(obj, opts.since, opts.until)) {
               continue;
             }
-            
+
             const formatted = formatLogEntry(obj, format);
             console.log(formatted);
           } catch (e) {
@@ -119,10 +119,10 @@ program
         console.error(chalk.red(`Error processing ${input}: ${e instanceof Error ? e.message : String(e)}`));
       }
     }
-    
+
     if (opts.follow) {
       let lastSize = 0;
-      
+
       async function checkAndProcess() {
         try {
           const stats = await stat(input);
@@ -133,10 +133,10 @@ program
         } catch (e) {
           // File might not exist yet, ignore
         }
-        
+
         setTimeout(checkAndProcess, 1000); // Poll every second
       }
-      
+
       await checkAndProcess();
     } else {
       await processFile();

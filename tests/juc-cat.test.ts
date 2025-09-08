@@ -21,9 +21,9 @@ describe('juc-cat CLI', () => {
       // Test field projection
       const { stdout } = await execAsync('node dist/juc-cat.js test.juc --fields=ts,level,service');
       const lines = stdout.trim().split('\n');
-      
+
       expect(lines).toHaveLength(2);
-      
+
       const obj1 = JSON.parse(lines[0]);
       expect(obj1).toHaveProperty('ts');
       expect(obj1).toHaveProperty('level');
@@ -37,14 +37,14 @@ describe('juc-cat CLI', () => {
 
   it('formats for elastic', async () => {
     const logs = JSON.stringify({ ts: '2024-01-01T00:00:00Z', level: 'info', message: 'test' });
-    
+
     const packed = await compressNDJSON(logs, { codec: 'hybrid', columnar: true });
     await writeFile('test-elastic.juc', packed);
 
     try {
       const { stdout } = await execAsync('node dist/juc-cat.js test-elastic.juc --format=elastic');
       const obj = JSON.parse(stdout.trim());
-      
+
       expect(obj).toHaveProperty('@timestamp');
       expect(obj).not.toHaveProperty('ts');
       expect(obj['@timestamp']).toBe('2024-01-01T00:00:00Z');
