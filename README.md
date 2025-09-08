@@ -53,6 +53,19 @@
 
 👉 **Result:** Competitive compression, **19× faster encode**, **80% bandwidth savings** with selective decode.
 
+#### Observability (synthetic logs)
+
+Run locally:
+```bash
+npm run bench:logs:all
+# Sample output:
+# Dataset=synthetic-logs | raw=32.4MB | juc=7.3MB (22.5%) | encode=185ms | selective=3.9MB (12.0%)
+```
+
+**Takeaway:** columnar+logs profile typically lands at ~20–30% of raw; selective decode for `ts,level,service,message` is ~10–20% of raw.
+
+> That directly translates to ingestion-volume savings for tools that charge per-GB (Datadog/Elastic/Splunk).
+
 ## 📈 Performance at Scale
 
 ```
@@ -103,6 +116,29 @@ Compression Ratio vs Dataset Size
 * **Observability** → extract `user_id, ts, error_code` instantly from huge logs
 * **Streaming filters** → route/filter JSON streams without hydrating full objects
 * **Edge APIs** → Brotli-level compression, but 10–35× faster, no native deps
+
+### 🛰️ Observability mode (logs)
+
+Cut log ingestion by 50–80% with timestamp delta-of-delta, enum factoring (level/service), and selective decode for `ts/level/service`.
+
+CLI:
+
+```bash
+# Capture & shrink logs before ingestion
+json-ultra-compress compress-ndjson --profile=logs --columnar \
+  access.ndjson -o access.juc
+
+# Follow mode (tail -f style) with periodic flush
+json-ultra-compress compress-ndjson --profile=logs --columnar --follow \
+  --flush-lines=4096 --flush-ms=1000 access.ndjson -o access.juc
+
+# Selective decode for quick triage
+json-ultra-compress decompress-ndjson access.juc \
+  --fields=ts,level,service,message -o triage.ndjson --metrics
+
+# Pre-ingest (MVP: local file output; add your shipper later)
+json-ultra-compress ingest datadog --input access.ndjson --out access.juc
+```
 
 ### 🚀 Interactive Demo
 
@@ -293,6 +329,36 @@ ls -lh partial.ndjson  # Should be 70-90% smaller!
 json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto huge-logs.ndjson -o huge.juc
 ```
 
+### Prove it on your logs (cost math)
+
+1) Functional: does it work on real logs?
+
+```bash
+# ~100MB NDJSON sample
+cat logs.ndjson | json-ultra-compress compress-ndjson --profile=logs --columnar -o logs.juc
+du -h logs.ndjson logs.juc
+
+# Selective fidelity
+json-ultra-compress decompress-ndjson logs.juc --fields=ts,level,service,message -o triage.ndjson
+
+# Full roundtrip fidelity
+json-ultra-compress decompress-ndjson logs.juc -o roundtrip.ndjson
+diff -q <(sed 's/\r$//' logs.ndjson) <(sed 's/\r$//' roundtrip.ndjson) || true
+```
+
+2) Economic: does it cut ingestion/storage costs?
+
+- Providers charge per GB ingested. If 100MB → 25MB, you save ~75% billable volume.
+- Example: 10TB/month at $0.10/GB → Raw $1,000 → Compressed $250 → Save $750/month.
+
+3) Integration: practical to deploy
+
+```bash
+tail -F app.ndjson | json-ultra-compress compress-ndjson --profile=logs --columnar --follow \
+  -o app.juc
+# or pre-process to object storage, then ship
+```
+
 ## Performance Notes
 
 - **Best for**: Structured JSON/NDJSON with repeated field patterns
@@ -319,6 +385,11 @@ npm i
 npm test   # should be all green ✅
 npm run build
 npm run bench:comprehensive  # run full benchmark suite
+
+- Observability smoke test
+  ```bash
+  npm run test:obs
+  ```
 ```
 
 ## Roadmap

@@ -259,6 +259,24 @@ function encodeRawJsonColumn(values: unknown[]): Uint8Array {
   return concatenateUint8Arrays(chunks);
 }
 
+// Heuristics helpers for logs profile
+function looksLikeTimestampKey(key: string): boolean {
+  const k = key.toLowerCase();
+  return k === 'ts' || k === 'timestamp' || k === 'time' || k.endsWith('_ts') || k.endsWith('_time');
+}
+
+function looksLikeLevelKey(key: string): boolean {
+  const k = key.toLowerCase();
+  return k === 'level' || k === 'severity' || k === 'loglevel';
+}
+
+function looksLikeServiceKey(key: string): boolean {
+  const k = key.toLowerCase();
+  return k === 'service' || k === 'app' || k === 'application' || k === 'service_name';
+}
+
+type Profile = 'default' | 'logs';
+
 function concatenateUint8Arrays(arrays: Uint8Array[]): Uint8Array {
   const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0);
   const result = new Uint8Array(totalLength);
@@ -281,7 +299,7 @@ export interface ColumnarFrame {
   columns: Uint8Array[];
 }
 
-export function encodeColumnarBatch(objects: Record<string, unknown>[], shapeId: bigint, dict?: KeyDict | null): Uint8Array {
+export function encodeColumnarBatch(objects: Record<string, unknown>[], shapeId: bigint, dict?: KeyDict | null, profile: Profile = 'default'): Uint8Array {
   if (objects.length === 0) return new Uint8Array([0xC1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
   // Get sorted key list for this shape
@@ -315,9 +333,22 @@ export function encodeColumnarBatch(objects: Record<string, unknown>[], shapeId:
 
   // Encode columns
   const columns: Uint8Array[] = [];
+  const enableLogsHeuristics = profile === 'logs';
   for (const key of keys) {
     const columnValues = objects.map(obj => obj[key] ?? null);
-    const encodedColumn = encodeColumn(columnValues, key);
+    let encodedColumn: Uint8Array;
+    if (enableLogsHeuristics) {
+      const nonNullValues = columnValues.filter(v => v !== null && v !== undefined);
+      if (looksLikeTimestampKey(key) && nonNullValues.length > 0 && nonNullValues.every(v => typeof v === 'string' || typeof v === 'number')) {
+        encodedColumn = encodeTimeDodColumn(columnValues);
+      } else if (looksLikeLevelKey(key) || looksLikeServiceKey(key)) {
+        encodedColumn = encodeEnumIdsColumn(columnValues as (string | null)[]);
+      } else {
+        encodedColumn = encodeColumn(columnValues, key);
+      }
+    } else {
+      encodedColumn = encodeColumn(columnValues, key);
+    }
     columns.push(encodedColumn);
   }
 
@@ -366,7 +397,7 @@ export function encodeColumnarBatch(objects: Record<string, unknown>[], shapeId:
   return result;
 }
 
-export function encodeNDJSONColumnar(input: string, dict?: KeyDict | null, batchSize = 4096): Uint8Array[] {
+export function encodeNDJSONColumnar(input: string, dict?: KeyDict | null, batchSize = 4096, profile: Profile = 'default'): Uint8Array[] {
   // Handle BOM and preserve line ending style
   let processedInput = input;
 
@@ -432,7 +463,7 @@ export function encodeNDJSONColumnar(input: string, dict?: KeyDict | null, batch
   for (const { objects: shapeObjects, shapeId } of Array.from(shapeGroups.values())) {
     for (let offset = 0; offset < shapeObjects.length; offset += batchSize) {
       const batch = shapeObjects.slice(offset, Math.min(offset + batchSize, shapeObjects.length));
-      const frame = encodeColumnarBatch(batch, shapeId, dict);
+      const frame = encodeColumnarBatch(batch, shapeId, dict, profile);
       frames.push(frame);
     }
   }

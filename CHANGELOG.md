@@ -1,3 +1,15 @@
+## v1.3.0
+
+- Observability mode (`--profile=logs`):
+  - Timestamp delta-of-delta codec for `ts/timestamp/time`-like fields
+  - Enum factoring for `level/severity/service`-like fields
+  - Heuristics applied only in logs profile, default remains unchanged
+- CLI additions:
+  - `--profile=logs` to enable logs heuristics
+  - `--follow` with `--flush-lines` and `--flush-ms` for stream-like processing
+  - `--metrics` print decode metrics
+- Docs: README updated with Observability examples and demo link
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

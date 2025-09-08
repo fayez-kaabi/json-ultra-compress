@@ -22,6 +22,7 @@ export interface CompressOptions {
 export interface NDJSONOptions extends CompressOptions {
   columnar?: boolean;
   workers?: number | 'auto' | false; // default false - opt-in worker pool for large jobs
+  profile?: 'default' | 'logs';
 }
 
 export interface DecodeOptions {
@@ -204,7 +205,7 @@ export async function compressNDJSON(inputNdjson: string, opts: NDJSONOptions = 
   const envCodec = process.env.JSON_OPT_CODEC;
   const codecName = opts.codec ?? (envCodec && envCodec in codecs ? envCodec as CodecName : 'brotli');
   let chunks = opts.columnar
-    ? encodeNDJSONColumnar(inputNdjson, opts.keyDict ?? null)
+    ? encodeNDJSONColumnar(inputNdjson, opts.keyDict ?? null, undefined, opts.profile ?? 'default')
     : encodeNDJSON(inputNdjson, opts.keyDict ?? null);
 
   // If columnar encoding returns empty (fallback), use regular NDJSON

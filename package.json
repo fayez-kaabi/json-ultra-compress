@@ -40,6 +40,11 @@
     "test:watch": "vitest",
     "bench": "tsx scripts/bench.ts",
     "bench:comprehensive": "tsx scripts/comprehensive-bench.ts",
+    "bench:logs:gen": "tsx scripts/gen-logs.ndjson.ts 200000 benchmark-data/logs.ndjson",
+    "bench:logs": "npm run build && tsx scripts/bench-logs.ts benchmark-data/logs.ndjson",
+    "bench:logs:all": "npm run bench:logs:gen && npm run bench:logs",
+    "test:obs": "vitest -t observability",
+    "postbench:logs": "node -e \"console.log('\\nPaste this into README: see benchmark-results/outputs\\n')\"",
     "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [

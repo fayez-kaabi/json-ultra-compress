@@ -70,8 +70,8 @@ function hashString(str: string): number {
 import { encodeNDJSONColumnar as encodeColumnar, decodeNDJSONColumnar as decodeColumnar } from './ndjson/columnar.js';
 
 // Columnar NDJSON encoding (wrapper for compatibility)
-export function encodeNDJSONColumnar(input: string, dict?: KeyDict | null, batchSize = 4096): Uint8Array[] {
-  return encodeColumnar(input, dict, batchSize);
+export function encodeNDJSONColumnar(input: string, dict?: KeyDict | null, batchSize = 4096, profile: 'default' | 'logs' = 'default'): Uint8Array[] {
+  return encodeColumnar(input, dict, batchSize, profile);
 }
 
 // Legacy implementation (keeping for reference)
