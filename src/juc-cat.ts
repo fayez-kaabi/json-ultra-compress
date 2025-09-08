@@ -111,11 +111,11 @@ async function saveState(stateFile: string, state: StateFile): Promise<void> {
       ...state,
       processedHashes: Array.from(state.processedHashes)
     };
-    
+
     // Atomic write: write to temp file then rename
     const tempFile = `${stateFile}.tmp`;
     await writeFile(tempFile, JSON.stringify(serializable, null, 2));
-    
+
     // Atomic rename (crash-safe)
     const fs = require('fs');
     fs.renameSync(tempFile, stateFile);
@@ -148,12 +148,12 @@ class RateLimiter {
 
   async acquire(count: number = 1): Promise<void> {
     this.refill();
-    
+
     if (this.tokens >= count) {
       this.tokens -= count;
       return;
     }
-    
+
     // Backpressure: wait for tokens
     const waitTime = ((count - this.tokens) / this.refillRate) * 1000;
     await new Promise(resolve => setTimeout(resolve, waitTime));
@@ -204,15 +204,15 @@ program
     const rateLimiter = new RateLimiter(parseInt(opts.rateLimit) || 1000);
     const healthPort = parseInt(opts.healthPort) || 0;
     const checkpointInterval = parseInt(opts.checkpointInterval) || 5000;
-    
+
     // Health endpoint for K8s/monitoring
     if (healthPort > 0) {
       const http = require('http');
       const server = http.createServer((req: any, res: any) => {
         if (req.url === '/health') {
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ 
-            status: 'healthy', 
+          res.end(JSON.stringify({
+            status: 'healthy',
             uptime: process.uptime(),
             pid: process.pid,
             timestamp: new Date().toISOString()
@@ -238,27 +238,27 @@ program
           try {
             // Rate limiting (backpressure)
             await rateLimiter.acquire();
-            
+
             const obj = JSON.parse(line);
-            
+
             if (!shouldIncludeLine(obj, opts.since, opts.until)) {
               continue;
             }
-            
+
             // Duplicate suppression
             const lineHash = hashLine(line);
             if (state?.processedHashes.has(lineHash)) {
               continue; // Skip duplicate
             }
-            
+
             const formatted = formatLogEntry(obj, format);
             console.log(formatted);
-            
+
             // Track processed line
             if (state) {
               state.processedHashes.add(lineHash);
               state.totalLinesProcessed++;
-              
+
               // Limit hash set size to prevent memory bloat
               if (state.processedHashes.size > 10000) {
                 const hashes = Array.from(state.processedHashes);
@@ -317,15 +317,15 @@ program
                 lastCheckpointTime: Date.now()
               };
             }
-            
+
             await processFile(state);
-            
+
             // Update state
             state.inode = fileInfo.inode;
             state.size = fileInfo.size;
             state.lastProcessedOffset = fileInfo.size;
             state.lastModified = fileInfo.mtime;
-            
+
             // Periodic checkpoints (crash-safe)
             const now = Date.now();
             if (now - state.lastCheckpointTime > checkpointInterval) {
