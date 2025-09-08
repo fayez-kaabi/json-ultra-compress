@@ -15,7 +15,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "json-ultra-compress": "dist/cli.js"
+    "json-ultra-compress": "dist/cli.js",
+    "juc-cat": "dist/juc-cat.js"
   },
   "engines": {
     "node": ">=18"

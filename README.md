@@ -151,8 +151,8 @@ json-ultra-compress compress-ndjson --profile=logs --columnar --follow \
 json-ultra-compress decompress-ndjson access.juc \
   --fields=ts,level,service,message --metrics -o triage.ndjson
 
-# Pre-ingest (MVP: local file output; add your shipper later)
-json-ultra-compress ingest datadog --input access.ndjson --out access.juc
+# Stream projected fields to existing log agent (production ready)
+juc-cat access.juc --fields=ts,level,service,message --follow --format=datadog > ship.ndjson
 ```
 
 ### 🚀 Interactive Demo
@@ -221,6 +221,9 @@ json-ultra-compress decompress-ndjson access.juc -o restored.ndjson
 
 # 🔥 Select only two columns from a 100MB log without decoding the rest
 json-ultra-compress decompress-ndjson --fields=user_id,ts access.juc -o partial.ndjson
+
+# 🚀 Stream projected fields to log agents (production sidecar)
+juc-cat access.juc --fields=ts,level,service,message --follow --format=elastic > ship.ndjson
 
 # For huge datasets, add worker pool for parallel processing (columnar only)
 json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto massive-logs.ndjson -o massive.juc
@@ -348,35 +351,32 @@ ls -lh partial.ndjson  # Should be 70-90% smaller!
 json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto huge-logs.ndjson -o huge.juc
 ```
 
-### Prove it on your logs (cost math)
+### Sidecar Pattern (Production Ready)
 
-1) Functional: does it work on real logs?
-
-```bash
-# ~100MB NDJSON sample
-cat logs.ndjson | json-ultra-compress compress-ndjson --profile=logs --columnar -o logs.juc
-du -h logs.ndjson logs.juc
-
-# Selective fidelity
-json-ultra-compress decompress-ndjson logs.juc --fields=ts,level,service,message -o triage.ndjson
-
-# Full roundtrip fidelity
-json-ultra-compress decompress-ndjson logs.juc -o roundtrip.ndjson
-diff -q <(sed 's/\r$//' logs.ndjson) <(sed 's/\r$//' roundtrip.ndjson) || true
-```
-
-2) Economic: does it cut ingestion/storage costs?
-
-- Providers charge per GB ingested. If 100MB → 25MB, you save ~75% billable volume.
-- Example: 10TB/month at $0.10/GB → Raw $1,000 → Compressed $250 → Save $750/month.
-
-3) Integration: practical to deploy
+**The bridge**: Keep full-fidelity `.juc` + stream projected NDJSON to your existing log agent.
 
 ```bash
-tail -F app.ndjson | json-ultra-compress compress-ndjson --profile=logs --columnar --follow \
-  -o app.juc
-# or pre-process to object storage, then ship
+# 1) Compress & store full-fidelity logs
+json-ultra-compress compress-ndjson --profile=logs --columnar --follow app.ndjson -o app.juc
+
+# 2) Project only what dashboards need (tiny stream the agent tails)
+juc-cat app.juc --fields=ts,level,service,message --follow --format=elastic > app.ship.ndjson
+
+# 3) Point your existing agent to: app.ship.ndjson (70-90% smaller)
 ```
+
+**Acceptance checks:**
+```bash
+# Round-trip fidelity (no projection)
+diff -q <(jq -c . app.ndjson) <(json-ultra-compress decompress-ndjson app.juc | jq -c .)
+
+# Projection win
+wc -c app.ndjson app.ship.ndjson  # expect 70-90% drop
+```
+
+**Economic impact:**
+- Providers charge per GB ingested. 100MB → 25MB = 75% billable volume savings.
+- Example: 10TB/month at $0.10/GB → Raw $1,000 → Projected $250 → **Save $750/month**.
 
 ## Performance Notes
 
