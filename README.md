@@ -12,7 +12,7 @@
 
 - 🚀 **10–35× faster** than Brotli on structured JSON/NDJSON
 - 💥 **70–90% bandwidth reduction** with selective field decode (impossible with Brotli/Zstd)
-- 💰 **Cut Datadog/Elastic bills** by 67.6% with zero code changes (proven on real logs)
+- 💰 **Cut Datadog/Elastic log ingestion** by ~50–70% (on my datasets) — zero code changes
 - 📊 **Columnar NDJSON**: store fields separately to skip what you don't need
 - 🛰️ **Production sidecar**: `juc-cat` streams projected fields to existing log agents
 - 🌐 Pure TypeScript – zero native deps (Node, browsers, edge)
@@ -74,9 +74,23 @@ npm run bench:logs:all
 
 **Takeaway:** columnar+logs profile typically lands at ~20–30% of raw; selective decode for `ts,level,service,message` is ~10–20% of raw.
 
-🚨 **PROVEN**: Our benchmark shows **98.8% compression** (48.92MB → 0.61MB) and **67.6% selective decode savings** on my datasets; [share yours](https://fayez-kaabi.github.io/json-ultra-compress-demo/).
-
 💡 **This isn't just compression—it's a new category of data processing.**
+
+<details>
+<summary><strong>Case Study: Synthetic Logs (200K entries)</strong></summary>
+
+**Reproduce locally:**
+```bash
+npm run bench:logs:all
+```
+
+**My results:**
+- Raw logs: 48.92MB
+- Full compression: 0.61MB (**98.8% reduction**)
+- Selective decode (`ts,level,service,message`): 15.85MB (**67.6% reduction**)
+
+[Try the interactive demo](https://fayez-kaabi.github.io/json-ultra-compress-demo/) with your own data patterns.
+</details>
 
 > That directly translates to ingestion-volume savings for tools that charge per-GB (Datadog/Elastic/Splunk).
 
@@ -239,11 +253,20 @@ json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto mas
 - `json-ultra-compress` - Core compression/decompression engine
 - `juc-cat` - Production sidecar with enterprise-grade features
 
-**juc-cat flags:**
+**juc-cat --help:**
 ```bash
-juc-cat app.juc --fields=ts,level,service,message --follow --format=elastic \
-  --state-file=.juc.state --rate-limit=500 --health-port=8080 \
-  --checkpoint-interval=10000 --metrics > ship.ndjson
+juc-cat <input.juc> [options]
+  --fields=ts,level,service,message   Comma-separated projection
+  --format=ndjson|elastic|datadog     Output adapter (default: ndjson)
+  --follow                            Stream like tail -f
+  --since=2025-09-08T12:00:00Z        Start time (ISO8601)
+  --until=2025-09-08T13:00:00Z        End time (ISO8601)
+  --state-file=/var/lib/juc/state     Stateful resume (inode+offset)
+  --checkpoint-interval=3000          Persist state every N ms
+  --rate-limit=500                    Max lines/sec (token bucket)
+  --health-port=8080                  HTTP /health for probes
+  --metrics                           Periodic metrics to stderr
+  -o, --output=ship.ndjson            Output file (default: stdout)
 ```
 
 ## Why json-ultra-compress?
@@ -405,33 +428,28 @@ wc -c app.ndjson app.ship.ndjson  # expect 67.6% drop (proven)
 - **10TB/month** at $0.10/GB: Raw $1,000 → Projected $320 → **Save $680/month**.
 - **Scale up**: 100TB workload = **$6,800/month savings**.
 
-*Note: Per-GB pricing varies by provider/region. Figures depend on your ingest mix and field selection.*
+*Note: Provider pricing varies by region/plan. Figures depend on your ingest mix and field selection.*
 
 ### 5-Minute Acceptance Checks
 
 ```bash
 # 1) Rotation + resume (at-least-once)
-json-ultra-compress compress-ndjson --profile=logs --columnar --follow in.ndjson -o out.juc &
-juc-cat out.juc --fields=ts,level,service,message --follow --format=ndjson \
-  --state-file=.juc.state --checkpoint-interval=3000 > ship.ndjson &
+juc-cat app.juc --fields=ts,level,service,message --follow \
+  --format=ndjson --state-file=.juc.state > ship.ndjson &
+# simulate rotate of the source → new data should keep flowing
+: > app.ndjson && echo '{"ts":"...","level":"info","service":"api","message":"rotated"}' >> app.ndjson
 
-# Simulate logrotate
-cp in.ndjson in.ndjson.1 && : > in.ndjson               # truncate
-echo '{"ts":"2025-09-08T12:00:01Z","level":"info","service":"api","message":"rotated"}' >> in.ndjson
-grep rotated ship.ndjson                                 # should appear
+# 2) Crash-safe checkpoint  
+pkill -9 -f "juc-cat .*app.juc" && \
+juc-cat app.juc --fields=ts,level,service,message --follow --state-file=.juc.state >> ship.ndjson
+# expect no gaps (at-least-once), minor dupes acceptable
 
-# 2) Crash-safe checkpoint
-pkill -9 -f "juc-cat .*out.juc"                          # simulate crash
-# restart with same state
-juc-cat out.juc --fields=ts,level,service,message --follow --format=ndjson \
-  --state-file=.juc.state >> ship.ndjson                 # no gaps/dup bursts
+# 3) Backpressure
+juc-cat app.juc --fields=ts,level,service,message --follow \
+  --rate-limit=500 --state-file=.juc.state > /dev/null &  # verify capped throughput
 
-# 3) Backpressure / rate limit
-juc-cat out.juc --fields=ts,level,service,message --follow --format=ndjson \
-  --rate-limit=500 --state-file=.juc.state > /dev/null & # verify capped throughput
-
-# 4) Health check
-curl http://localhost:8080/health                        # K8s liveness probe
+# 4) Size win
+wc -c app.ndjson ship.ndjson  # expect ~50–70% drop on typical logs
 ```
 
 ### K8s DaemonSet (Enterprise Scale)
@@ -447,16 +465,17 @@ kubectl apply -f k8s/juc-cat-daemonset.yaml
 - **Resource limits**: 128Mi-512Mi memory, 100m-500m CPU
 - **Stateful resume**: Survives pod restarts with persistent state
 - **Rate limiting**: Configurable backpressure (default 500 lines/sec)
-- **Duplicate suppression**: Hash-based deduplication with memory bounds
+- **Duplicate suppression**: Optional hash-based deduplication (off by default)
 
 ### Production Checklist
 
-- ✅ `--state-file` mounted to persistent volume
-- ✅ `--health-port` liveness/readiness in K8s
-- ✅ `--rate-limit` aligned with downstream capacity
-- ✅ Logrotate tested; clock skew tolerated
-- ✅ `--checkpoint-interval` for crash recovery
-- ✅ `--metrics` for SRE monitoring
+✅ **Production checklist (logs ingestion via juc-cat)**
+- **Persist state**: `--state-file` mounted on PersistentVolume / hostPath
+- **Liveness/readiness**: `--health-port` with `/health` probes  
+- **Backpressure**: `--rate-limit` tuned to downstream (Datadog/Filebeat/Fluent Bit)
+- **Rotation/resume**: verify at-least-once on logrotate + crash restart
+- **Time & ordering**: clocks OK; consumers tolerate out-of-order within window
+- **Dedup (optional)**: keep OFF by default; if ON, use hash(ts,message,service) + TTL
 
 ### Integration Matrix
 
@@ -467,6 +486,50 @@ kubectl apply -f k8s/juc-cat-daemonset.yaml
 | ✅ **Generic NDJSON** | Ready | `--format=ndjson` | Any log agent that tails NDJSON |
 | ⬜ **Splunk HEC** | Planned | `--format=splunk` | v1.7 |
 | ⬜ **OpenSearch** | Planned | `--format=opensearch` | v1.7 |
+
+### Agent Configs
+
+**Datadog Agent (logs.yaml):**
+```yaml
+logs:
+  - type: file
+    path: /var/log/juc/ship.ndjson
+    service: my-service
+    source: custom
+    log_processing_rules:
+      - type: multi_line
+        pattern: '^{'
+        name: json_lines
+```
+
+**Elastic Filebeat:**
+```yaml
+filebeat.inputs:
+  - type: filestream
+    id: juc-ship
+    paths: ["/var/log/juc/ship.ndjson"]
+    parsers:
+      - ndjson:
+          target: ""
+          add_error_key: true
+          overwrite_keys: true
+```
+
+**Fluent Bit:**
+```ini
+[INPUT]
+  Name              tail
+  Path              /var/log/juc/ship.ndjson
+  Parser            json
+  Tag               juc.ship
+
+[OUTPUT]
+  Name   es
+  Match  juc.ship
+  Host   elasticsearch
+  Port   9200
+  Index  logs-juc
+```
 
 ## Performance Notes
 
