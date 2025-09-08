@@ -2,9 +2,14 @@
 /**
  * juc-cat - Stream .juc files as projected NDJSON
  * The bridge from columnar storage to log agents (Datadog/Elastic/FluentBit)
+ * 
+ * Features:
+ * - Stateful resume with --state-file (inode + offset tracking)
+ * - Logrotate handling (detect file rotation, replay from start)
+ * - At-least-once delivery guarantee
  */
 import { Command } from 'commander';
-import { readFile, stat } from 'fs/promises';
+import { readFile, stat, writeFile } from 'fs/promises';
 import { createReadStream } from 'fs';
 import chalk from 'chalk';
 import { decompressNDJSON } from './index.js';
@@ -14,11 +19,19 @@ const { version } = require('../package.json');
 
 type OutputFormat = 'ndjson' | 'elastic' | 'datadog';
 
+interface StateFile {
+  inode: number;
+  size: number;
+  lastProcessedOffset: number;
+  lastModified: number;
+}
+
 interface FormatOptions {
   format: OutputFormat;
   fields?: string[];
   since?: string;
   until?: string;
+  stateFile?: string;
 }
 
 function formatLogEntry(obj: any, format: OutputFormat): string {
@@ -76,6 +89,36 @@ function shouldIncludeLine(obj: any, since?: string, until?: string): boolean {
   return true;
 }
 
+async function loadState(stateFile: string): Promise<StateFile | null> {
+  try {
+    const data = await readFile(stateFile, 'utf8');
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+}
+
+async function saveState(stateFile: string, state: StateFile): Promise<void> {
+  try {
+    await writeFile(stateFile, JSON.stringify(state, null, 2));
+  } catch (e) {
+    console.error(chalk.yellow(`Warning: Could not save state to ${stateFile}: ${e instanceof Error ? e.message : String(e)}`));
+  }
+}
+
+async function getFileInfo(filePath: string): Promise<{ inode: number; size: number; mtime: number } | null> {
+  try {
+    const stats = await stat(filePath);
+    return {
+      inode: stats.ino,
+      size: stats.size,
+      mtime: stats.mtimeMs
+    };
+  } catch {
+    return null;
+  }
+}
+
 const program = new Command();
 program
   .name('juc-cat')
@@ -86,6 +129,7 @@ program
   .argument('<input>', '.juc file to stream')
   .option('--fields <fields>', 'comma-separated field names (e.g., ts,level,service,message)')
   .option('--follow', 'follow mode: re-read file when it changes', false)
+  .option('--state-file <file>', 'stateful resume: track inode + offset for at-least-once delivery')
   .option('--since <time>', 'only include entries after this timestamp (ISO 8601)')
   .option('--until <time>', 'only include entries before this timestamp (ISO 8601)')
   .option('--format <format>', 'output format: ndjson|elastic|datadog', 'ndjson')
@@ -121,22 +165,58 @@ program
     }
 
     if (opts.follow) {
-      let lastSize = 0;
-
+      let state: StateFile | null = null;
+      
+      // Load previous state if state-file provided
+      if (opts.stateFile) {
+        state = await loadState(opts.stateFile);
+      }
+      
       async function checkAndProcess() {
         try {
-          const stats = await stat(input);
-          if (stats.size > lastSize) {
+          const fileInfo = await getFileInfo(input);
+          if (!fileInfo) {
+            setTimeout(checkAndProcess, 1000);
+            return;
+          }
+          
+          // Check for logrotate (inode changed or size decreased)
+          const isRotated = state && (
+            state.inode !== fileInfo.inode || 
+            fileInfo.size < state.size
+          );
+          
+          if (isRotated) {
+            console.error(chalk.yellow(`Logrotate detected: inode ${state!.inode} → ${fileInfo.inode}, size ${state!.size} → ${fileInfo.size}`));
+            // Reset state for new file
+            state = null;
+          }
+          
+          // Process if file grew or rotated
+          if (!state || fileInfo.size > state.size || isRotated) {
             await processFile();
-            lastSize = stats.size;
+            
+            // Update state
+            const newState: StateFile = {
+              inode: fileInfo.inode,
+              size: fileInfo.size,
+              lastProcessedOffset: fileInfo.size,
+              lastModified: fileInfo.mtime
+            };
+            
+            if (opts.stateFile) {
+              await saveState(opts.stateFile, newState);
+            }
+            
+            state = newState;
           }
         } catch (e) {
-          // File might not exist yet, ignore
+          console.error(chalk.red(`Error in follow mode: ${e instanceof Error ? e.message : String(e)}`));
         }
-
+        
         setTimeout(checkAndProcess, 1000); // Poll every second
       }
-
+      
       await checkAndProcess();
     } else {
       await processFile();

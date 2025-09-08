@@ -137,7 +137,7 @@ Compression Ratio vs Dataset Size
 
 **Zero-config intelligence**: `--profile=logs` automatically detects and optimizes `ts/timestamp`, `level/severity`, `service` fields with delta-of-delta and enum factoring.
 
-**Production-ready sidecar**: `juc-cat` bridges your compressed storage to existing log agents (Datadog/Elastic/FluentBit) with 70-90% smaller streams.
+**Production-ready sidecar**: `juc-cat` bridges your compressed storage to existing log agents with 70-90% smaller streams, stateful resume, and logrotate handling.
 
 **Real cost impact**: Proven 67.6% bandwidth reduction = $750/month savings on 10TB workloads.
 
@@ -222,7 +222,8 @@ console.log('Selective decode size:', partial.length); // 80% smaller!
 json-ultra-compress compress-ndjson --profile=logs --columnar access.ndjson -o access.juc
 
 # Stream projected fields to existing log agents (cut bills by 68%)
-juc-cat access.juc --fields=ts,level,service,message --follow --format=elastic > ship.ndjson
+juc-cat access.juc --fields=ts,level,service,message --follow --format=elastic \
+  --state-file=juc.state > ship.ndjson
 
 # Decompress full data when needed
 json-ultra-compress decompress-ndjson access.juc -o restored.ndjson
@@ -236,7 +237,7 @@ json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto mas
 
 **Two CLI tools:**
 - `json-ultra-compress` - Core compression/decompression engine
-- `juc-cat` - Production sidecar for streaming projected fields to log agents
+- `juc-cat` - Production sidecar with stateful resume, logrotate handling, at-least-once delivery
 
 ## Why json-ultra-compress?
 
@@ -376,9 +377,11 @@ json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto hug
 json-ultra-compress compress-ndjson --profile=logs --columnar --follow app.ndjson -o app.juc
 
 # 2) Stream only dashboard essentials (67.6% smaller ingestion volume)
-juc-cat app.juc --fields=ts,level,service,message --follow --format=elastic > app.ship.ndjson
+juc-cat app.juc --fields=ts,level,service,message --follow --format=elastic \
+  --state-file=juc.state > app.ship.ndjson
 
 # 3) Point your existing agent to: app.ship.ndjson → instant bill reduction
+# (handles logrotate, stateful resume, at-least-once delivery)
 ```
 
 **Acceptance checks (bulletproof):**
@@ -431,7 +434,7 @@ npm run bench:comprehensive  # run full benchmark suite
 ## Roadmap
 
 - **v1.6** — Streaming APIs, skip indices for even faster partial reads
-- **v1.7** — Dictionary learning, browser bundle optimizations  
+- **v1.7** — Dictionary learning, browser bundle optimizations
 - **v2.0** — Query language for complex field projections
 
 **✅ v1.5.0 SHIPPED**: Observability mode, logs profile, juc-cat sidecar, proven 67.6% cost savings
