@@ -1,5 +1,7 @@
 # json-ultra-compress
 
+[![Demo](https://img.shields.io/badge/🚀_Interactive-Demo-blue?style=for-the-badge)](https://fayez-kaabi.github.io/json-ultra-compress-demo/)
+
 **JSON-native compression with selective field decode.**
 
 - 🚀 **10–35× faster** than Brotli on structured JSON/NDJSON
@@ -102,6 +104,19 @@ Compression Ratio vs Dataset Size
 * **Streaming filters** → route/filter JSON streams without hydrating full objects
 * **Edge APIs** → Brotli-level compression, but 10–35× faster, no native deps
 
+### 🚀 Interactive Demo
+
+**[Try the live calculator →](https://fayez-kaabi.github.io/json-ultra-compress-demo/)**
+
+Test compression ratios and selective decode benefits with realistic datasets:
+- **JSON vs NDJSON** format comparison  
+- **Tiny/Medium/Large** presets (1K to 50K rows)
+- **Live metrics**: bandwidth saved, CPU avoided, query speedup
+- **Download outputs** in various compressed formats
+- **Mobile-friendly** interface with explanations
+
+*Perfect for understanding when and why json-ultra-compress beats traditional compression.*
+
 ## Install
 
 ```bash
@@ -158,6 +173,8 @@ json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto mas
 ```
 
 ## Why json-ultra-compress?
+
+> 💡 **See it in action**: [Interactive demo](https://fayez-kaabi.github.io/json-ultra-compress-demo/) with real datasets showing 70-90% bandwidth savings on selective decode.
 
 ### 🎯 **JSON-aware (not just text)**
 
