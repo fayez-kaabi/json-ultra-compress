@@ -36,10 +36,10 @@ describe('juc-cat stateful', () => {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
-      
+
       expect(stateData).toBeTruthy();
       const state = JSON.parse(stateData!);
-      
+
       expect(state).toHaveProperty('inode');
       expect(state).toHaveProperty('size');
       expect(state).toHaveProperty('lastProcessedOffset');

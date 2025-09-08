@@ -15,10 +15,10 @@ describe('juc-cat enterprise features', () => {
     try {
       // Start juc-cat with health endpoint
       const child = exec('node dist/juc-cat.js test-health.juc --health-port=8081 --follow');
-      
+
       // Give it time to start
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // Test health endpoint with Node.js http instead of curl
       const http = require('http');
       const healthResponse = await new Promise<string>((resolve, reject) => {
@@ -30,14 +30,14 @@ describe('juc-cat enterprise features', () => {
         req.on('error', reject);
         req.setTimeout(2000, () => reject(new Error('Timeout')));
       });
-      
+
       const health = JSON.parse(healthResponse);
-      
+
       expect(health).toHaveProperty('status', 'healthy');
       expect(health).toHaveProperty('uptime');
       expect(health).toHaveProperty('pid');
       expect(health).toHaveProperty('timestamp');
-      
+
       child.kill();
     } finally {
       await unlink('test-health.juc').catch(() => {});

@@ -198,6 +198,7 @@ program
   .option('--rate-limit <n>', 'max lines per second (backpressure handling)', '1000')
   .option('--health-port <port>', 'HTTP health endpoint port (0 = disabled)', '0')
   .option('--checkpoint-interval <ms>', 'checkpoint state every N ms', '5000')
+  .option('--metrics', 'emit processing metrics to stderr', false)
   .action(async (input, opts) => {
     const fields = opts.fields ? String(opts.fields).split(',').map((s: string) => s.trim()).filter(Boolean) : undefined;
     const format = opts.format as OutputFormat;

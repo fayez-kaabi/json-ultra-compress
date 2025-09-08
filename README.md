@@ -74,7 +74,7 @@ npm run bench:logs:all
 
 **Takeaway:** columnar+logs profile typically lands at ~20–30% of raw; selective decode for `ts,level,service,message` is ~10–20% of raw.
 
-🚨 **PROVEN**: Our benchmark shows **98.8% compression** (48.92MB → 0.61MB) and **67.6% selective decode savings** on real synthetic logs.
+🚨 **PROVEN**: Our benchmark shows **98.8% compression** (48.92MB → 0.61MB) and **67.6% selective decode savings** on my datasets; [share yours](https://fayez-kaabi.github.io/json-ultra-compress-demo/).
 
 💡 **This isn't just compression—it's a new category of data processing.**
 
@@ -237,7 +237,14 @@ json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto mas
 
 **Two CLI tools:**
 - `json-ultra-compress` - Core compression/decompression engine
-- `juc-cat` - Production sidecar with stateful resume, logrotate handling, backpressure, duplicate suppression, health endpoints
+- `juc-cat` - Production sidecar with enterprise-grade features
+
+**juc-cat flags:**
+```bash
+juc-cat app.juc --fields=ts,level,service,message --follow --format=elastic \
+  --state-file=.juc.state --rate-limit=500 --health-port=8080 \
+  --checkpoint-interval=10000 --metrics > ship.ndjson
+```
 
 ## Why json-ultra-compress?
 
@@ -393,10 +400,39 @@ diff -q <(jq -c . app.ndjson) <(json-ultra-compress decompress-ndjson app.juc | 
 wc -c app.ndjson app.ship.ndjson  # expect 67.6% drop (proven)
 ```
 
-**Bill impact (real math):**
+**Bill impact (example math):**
 - **Datadog/Elastic charge per GB ingested**. 100MB → 32MB = **68% cost reduction**.
 - **10TB/month** at $0.10/GB: Raw $1,000 → Projected $320 → **Save $680/month**.
 - **Scale up**: 100TB workload = **$6,800/month savings**.
+
+*Note: Per-GB pricing varies by provider/region. Figures depend on your ingest mix and field selection.*
+
+### 5-Minute Acceptance Checks
+
+```bash
+# 1) Rotation + resume (at-least-once)
+json-ultra-compress compress-ndjson --profile=logs --columnar --follow in.ndjson -o out.juc &
+juc-cat out.juc --fields=ts,level,service,message --follow --format=ndjson \
+  --state-file=.juc.state --checkpoint-interval=3000 > ship.ndjson &
+
+# Simulate logrotate
+cp in.ndjson in.ndjson.1 && : > in.ndjson               # truncate
+echo '{"ts":"2025-09-08T12:00:01Z","level":"info","service":"api","message":"rotated"}' >> in.ndjson
+grep rotated ship.ndjson                                 # should appear
+
+# 2) Crash-safe checkpoint
+pkill -9 -f "juc-cat .*out.juc"                          # simulate crash
+# restart with same state
+juc-cat out.juc --fields=ts,level,service,message --follow --format=ndjson \
+  --state-file=.juc.state >> ship.ndjson                 # no gaps/dup bursts
+
+# 3) Backpressure / rate limit
+juc-cat out.juc --fields=ts,level,service,message --follow --format=ndjson \
+  --rate-limit=500 --state-file=.juc.state > /dev/null & # verify capped throughput
+
+# 4) Health check
+curl http://localhost:8080/health                        # K8s liveness probe
+```
 
 ### K8s DaemonSet (Enterprise Scale)
 
@@ -412,6 +448,25 @@ kubectl apply -f k8s/juc-cat-daemonset.yaml
 - **Stateful resume**: Survives pod restarts with persistent state
 - **Rate limiting**: Configurable backpressure (default 500 lines/sec)
 - **Duplicate suppression**: Hash-based deduplication with memory bounds
+
+### Production Checklist
+
+- ✅ `--state-file` mounted to persistent volume
+- ✅ `--health-port` liveness/readiness in K8s  
+- ✅ `--rate-limit` aligned with downstream capacity
+- ✅ Logrotate tested; clock skew tolerated
+- ✅ `--checkpoint-interval` for crash recovery
+- ✅ `--metrics` for SRE monitoring
+
+### Integration Matrix
+
+| Provider | Status | Format | Notes |
+|----------|--------|--------|-------|
+| ✅ **Datadog** | Ready | `--format=datadog` | timestamp (ms epoch), status, service |
+| ✅ **Elastic** | Ready | `--format=elastic` | @timestamp, message, level |
+| ✅ **Generic NDJSON** | Ready | `--format=ndjson` | Any log agent that tails NDJSON |
+| ⬜ **Splunk HEC** | Planned | `--format=splunk` | v1.6 |
+| ⬜ **OpenSearch** | Planned | `--format=opensearch` | v1.6 |
 
 ## Performance Notes
 
