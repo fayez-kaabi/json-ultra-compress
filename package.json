@@ -1,6 +1,6 @@
 {
   "name": "json-ultra-compress",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "JSON-native compression with selective field decode. Faster than Brotli. Smarter than both.",
   "license": "MIT",
   "type": "module",
