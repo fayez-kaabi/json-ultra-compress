@@ -1,3 +1,19 @@
+## v1.6.0
+
+- **Enterprise-grade juc-cat sidecar**:
+  - `--state-file` stateful resume with inode + offset tracking
+  - Logrotate handling (detect file rotation, replay from start)
+  - `--rate-limit` backpressure control with token bucket algorithm
+  - Crash-safe checkpoints with atomic writes (`--checkpoint-interval`)
+  - Duplicate suppression with hash-based deduplication
+  - `--health-port` HTTP endpoint for K8s liveness/readiness probes
+  - `--metrics` flag for SRE monitoring
+- **K8s DaemonSet recipe**: Production deployment with resource limits, health checks
+- **Integration matrix**: Datadog ✅, Elastic ✅, Generic NDJSON ✅
+- **Production checklist**: Comprehensive ops hardening documentation
+- **5-minute acceptance checks**: Rotation, crash recovery, backpressure validation
+- **Honest claims**: Updated benchmarks with "on my datasets; share yours"
+
 ## v1.5.0
 
 - **juc-cat CLI** - Production sidecar for log agent integration:

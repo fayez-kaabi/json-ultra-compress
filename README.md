@@ -452,7 +452,7 @@ kubectl apply -f k8s/juc-cat-daemonset.yaml
 ### Production Checklist
 
 - ✅ `--state-file` mounted to persistent volume
-- ✅ `--health-port` liveness/readiness in K8s  
+- ✅ `--health-port` liveness/readiness in K8s
 - ✅ `--rate-limit` aligned with downstream capacity
 - ✅ Logrotate tested; clock skew tolerated
 - ✅ `--checkpoint-interval` for crash recovery
@@ -465,8 +465,8 @@ kubectl apply -f k8s/juc-cat-daemonset.yaml
 | ✅ **Datadog** | Ready | `--format=datadog` | timestamp (ms epoch), status, service |
 | ✅ **Elastic** | Ready | `--format=elastic` | @timestamp, message, level |
 | ✅ **Generic NDJSON** | Ready | `--format=ndjson` | Any log agent that tails NDJSON |
-| ⬜ **Splunk HEC** | Planned | `--format=splunk` | v1.6 |
-| ⬜ **OpenSearch** | Planned | `--format=opensearch` | v1.6 |
+| ⬜ **Splunk HEC** | Planned | `--format=splunk` | v1.7 |
+| ⬜ **OpenSearch** | Planned | `--format=opensearch` | v1.7 |
 
 ## Performance Notes
 
@@ -503,11 +503,11 @@ npm run bench:comprehensive  # run full benchmark suite
 
 ## Roadmap
 
-- **v1.6** — Streaming APIs, skip indices for even faster partial reads
-- **v1.7** — Dictionary learning, browser bundle optimizations
+- **v1.7** — Streaming APIs, skip indices for even faster partial reads
+- **v1.8** — Dictionary learning, browser bundle optimizations
 - **v2.0** — Query language for complex field projections
 
-**✅ v1.5.0 SHIPPED**: Observability mode, logs profile, juc-cat sidecar, proven 67.6% cost savings
+**✅ v1.6.0 SHIPPED**: Enterprise-grade juc-cat sidecar, stateful resume, K8s recipe, proven 67.6% cost savings
 
 ## License
 
@@ -515,6 +515,6 @@ MIT © 2025
 
 ---
 
-> **json-ultra-compress**
-> JSON-native compression with selective field decode.
-> Faster than Brotli. Smaller than Zstd. Smarter than both.
+> **json-ultra-compress + juc-cat**
+> JSON-native compression with selective field decode. Enterprise sidecar.
+> Cuts Datadog/Elastic bills. Zero code changes. Production ready.
