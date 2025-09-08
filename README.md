@@ -1,5 +1,11 @@
 # json-ultra-compress
 
+[![npm version](https://img.shields.io/npm/v/json-ultra-compress.svg)](https://www.npmjs.com/package/json-ultra-compress)
+[![npm downloads](https://img.shields.io/npm/dm/json-ultra-compress.svg)](https://www.npmjs.com/package/json-ultra-compress)
+[![GitHub stars](https://img.shields.io/github/stars/fayez-kaabi/json-ultra-compress.svg)](https://github.com/fayez-kaabi/json-ultra-compress/stargazers)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
 [![Demo](https://img.shields.io/badge/🚀_Interactive-Demo-blue?style=for-the-badge)](https://fayez-kaabi.github.io/json-ultra-compress-demo/)
 
 **The first JSON-native compression engine. Selective field decode. Revolutionary.**
