@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: juc-cat-sidecar
+  namespace: logging
+  labels:
+    app: juc-cat-sidecar
+spec:
+  selector:
+    matchLabels:
+      app: juc-cat-sidecar
+  template:
+    metadata:
+      labels:
+        app: juc-cat-sidecar
+    spec:
+      containers:
+      - name: juc-cat
+        image: node:20-alpine
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          npm install -g json-ultra-compress@latest
+          juc-cat /logs/app.juc \
+            --fields=ts,level,service,message \
+            --follow \
+            --format=elastic \
+            --state-file=/state/juc.state \
+            --rate-limit=500 \
+            --health-port=8080 \
+            --checkpoint-interval=10000 > /output/app.ship.ndjson
+        ports:
+        - containerPort: 8080
+          name: health
+        volumeMounts:
+        - name: logs
+          mountPath: /logs
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: output
+          mountPath: /output
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: logs
+        hostPath:
+          path: /var/log/app
+          type: Directory
+      - name: state
+        hostPath:
+          path: /var/lib/juc-cat
+          type: DirectoryOrCreate
+      - name: output
+        hostPath:
+          path: /var/log/juc-output
+          type: DirectoryOrCreate
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        effect: NoSchedule
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: juc-cat-health
+  namespace: logging
+spec:
+  selector:
+    app: juc-cat-sidecar
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: health
+  type: ClusterIP

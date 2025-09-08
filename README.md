@@ -237,7 +237,7 @@ json-ultra-compress compress-ndjson --codec=hybrid --columnar --workers=auto mas
 
 **Two CLI tools:**
 - `json-ultra-compress` - Core compression/decompression engine
-- `juc-cat` - Production sidecar with stateful resume, logrotate handling, at-least-once delivery
+- `juc-cat` - Production sidecar with stateful resume, logrotate handling, backpressure, duplicate suppression, health endpoints
 
 ## Why json-ultra-compress?
 
@@ -378,10 +378,10 @@ json-ultra-compress compress-ndjson --profile=logs --columnar --follow app.ndjso
 
 # 2) Stream only dashboard essentials (67.6% smaller ingestion volume)
 juc-cat app.juc --fields=ts,level,service,message --follow --format=elastic \
-  --state-file=juc.state > app.ship.ndjson
+  --state-file=juc.state --rate-limit=500 --health-port=8080 > app.ship.ndjson
 
 # 3) Point your existing agent to: app.ship.ndjson → instant bill reduction
-# (handles logrotate, stateful resume, at-least-once delivery)
+# (enterprise-grade: logrotate, backpressure, duplicate suppression, health checks)
 ```
 
 **Acceptance checks (bulletproof):**
@@ -397,6 +397,21 @@ wc -c app.ndjson app.ship.ndjson  # expect 67.6% drop (proven)
 - **Datadog/Elastic charge per GB ingested**. 100MB → 32MB = **68% cost reduction**.
 - **10TB/month** at $0.10/GB: Raw $1,000 → Projected $320 → **Save $680/month**.
 - **Scale up**: 100TB workload = **$6,800/month savings**.
+
+### K8s DaemonSet (Enterprise Scale)
+
+Deploy `juc-cat` as a sidecar across your cluster:
+
+```bash
+kubectl apply -f k8s/juc-cat-daemonset.yaml
+```
+
+**Features:**
+- **Health checks**: `/health` endpoint for K8s liveness/readiness
+- **Resource limits**: 128Mi-512Mi memory, 100m-500m CPU
+- **Stateful resume**: Survives pod restarts with persistent state
+- **Rate limiting**: Configurable backpressure (default 500 lines/sec)
+- **Duplicate suppression**: Hash-based deduplication with memory bounds
 
 ## Performance Notes
 
